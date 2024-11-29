@@ -92,7 +92,7 @@ def upload_file() -> Tuple[Response, int]:
         return jsonify({
             'message': 'File processed successfully',
             'download_url': f'/download/{output_filename}'
-        })
+        }), 200
 
     except UnicodeDecodeError:
         return jsonify({'error': 'Invalid file encoding'}), 500
@@ -107,7 +107,7 @@ def download_file(filename: str) -> Union[Response, Tuple[Response, int]]:
         return send_file(
             os.path.join(app.config['UPLOAD_FOLDER'], filename),
             as_attachment=True,
-            download_name=filename
+            attachment_filename=filename
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
