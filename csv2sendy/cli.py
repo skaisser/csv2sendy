@@ -1,8 +1,8 @@
 """Command line interface for CSV2Sendy."""
 
 import sys
-from flask import Flask
 from csv2sendy.web.app import app
+
 
 def main() -> None:
     """Start the web application."""
@@ -13,6 +13,7 @@ def main() -> None:
     except Exception as e:
         print(f"Error: {str(e)}")
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()
