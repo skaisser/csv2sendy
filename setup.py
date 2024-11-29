@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="csv2sendy",
     version="0.1.0",
-    author="Sergio Kaisser",
+    author="Shirleyson Kaisser",
     author_email="skaisser@gmail.com",
     description="A powerful CSV processor for Sendy.co with Brazilian format support",
     long_description=long_description,
@@ -48,6 +48,14 @@ setup(
             "pre-commit>=2.15",
             "twine>=3.4",
             "build>=0.7",
+            "mypy>=1.0.0",
+        ],
+        "test": [
+            "pytest>=6.0",
+            "pytest-cov>=2.0",
+            "black>=21.0",
+            "mypy>=1.0.0",
+            "coveralls>=3.3.1",
         ],
     },
     entry_points={

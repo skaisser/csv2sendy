@@ -4,7 +4,24 @@
 ```
 
 ## API Documentation
+# Certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
 
+# Environment and config
+.env
+.env.*
+*.conf
+config.ini
+
+# Credentials
+.aws/
+credentials/
+*credentials*
 ### Core Module
 
 ```{eval-rst}

@@ -58,3 +58,17 @@ htmlcov/
 # Local development configuration
 *.local
 local_settings.py
+
+# Security and credentials
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+.aws/
+credentials/
+*credentials*
+config.ini
+*.conf
+.env.*
