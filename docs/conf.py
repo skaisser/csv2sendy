@@ -5,8 +5,8 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # Project information
 project = 'CSV2Sendy'
-copyright = '2024, Sergio Kaisser'
-author = 'Sergio Kaisser'
+copyright = '2024, Shirleyson Kaisser'
+author = 'Shirleyson Kaisser'
 release = '0.1.0'
 
 # General configuration
