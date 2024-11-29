@@ -1,3 +1,16 @@
+"""Core module for CSV2Sendy.
+
+This module provides the core functionality for processing CSV files
+with Brazilian data format support. It includes functions for name
+processing, phone number formatting, and email validation.
+
+Key Features:
+    - Name processing with Brazilian name format support
+    - Phone number formatting with Brazilian number format
+    - Email validation and normalization
+    - CSV file processing with pandas DataFrame
+"""
+
 import re
 from email_validator import validate_email, EmailNotValidError
 import pandas as pd
@@ -9,7 +22,25 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class CSVProcessor:
+    """Process CSV files for Sendy.co with Brazilian data format support.
+    
+    This class provides methods to process CSV files containing contact
+    information, with special handling for Brazilian name formats,
+    phone numbers, and email addresses.
+    
+    Features:
+        - Name processing (handles 'sem nome' case)
+        - Phone number formatting (+55 prefix)
+        - Email validation and normalization
+        - Column mapping for Sendy.co format
+    """
+
     def __init__(self) -> None:
+        """Initialize the CSVProcessor instance.
+        
+        This method sets up the instance with the default encodings to use
+        when reading CSV files.
+        """
         self.encodings: List[str] = ['utf-8-sig', 'latin1', 'iso-8859-1', 'cp1252']
 
     def process_file(self, file_content: str, delimiter: Optional[str] = None) -> pd.DataFrame:

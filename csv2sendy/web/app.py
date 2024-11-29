@@ -1,3 +1,16 @@
+"""Web application module for CSV2Sendy.
+
+This module provides a Flask-based web interface for processing CSV files for Sendy.co.
+It includes routes for file upload, processing, and download with custom column mapping.
+
+Key Features:
+    - File upload with multiple encoding support
+    - CSV processing with Brazilian data format support
+    - Custom column mapping
+    - Tag addition
+    - Duplicate email removal
+"""
+
 import os
 from typing import Dict, Any, Optional, Union, Tuple, List, cast
 from flask import Flask, request, jsonify, send_file, make_response, render_template, Response
@@ -15,7 +28,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 TEMP_DIR = tempfile.mkdtemp()
 
 def cleanup_temp_files() -> None:
-    """Clean up temporary files when the application exits."""
+    """Clean up temporary files when the application exits.
+    
+    This function is registered with atexit to ensure proper cleanup
+    of temporary files even if the application crashes.
+    """
     if os.path.exists(TEMP_DIR):
         shutil.rmtree(TEMP_DIR)
 
@@ -23,12 +40,35 @@ atexit.register(cleanup_temp_files)
 
 @app.route('/')
 def index() -> str:
-    """Render the main page."""
+    """Render the main application page.
+    
+    Returns:
+        str: The rendered HTML template for the main page.
+    """
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_file() -> Union[Response, Tuple[Response, int]]:
-    """Handle file upload and processing."""
+    """Handle file upload and CSV processing.
+    
+    Accepts a CSV file upload, processes it using CSVProcessor,
+    and stores the processed data for later download.
+    
+    Returns:
+        Union[Response, Tuple[Response, int]]: JSON response with processed data
+        or error message with appropriate status code.
+        
+    Response Format:
+        Success (200):
+            {
+                'data': List[Dict[str, Any]],  # Processed records
+                'headers': List[str]  # Column names
+            }
+        Error (400):
+            {
+                'error': str  # Error message
+            }
+    """
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
@@ -79,7 +119,30 @@ def upload_file() -> Union[Response, Tuple[Response, int]]:
 
 @app.route('/download', methods=['POST'])
 def download() -> Union[Response, Tuple[Response, int]]:
-    """Handle file download with custom column mapping."""
+    """Handle file download with custom column mapping.
+    
+    Processes the stored CSV file with custom column mapping,
+    adds tags if specified, and returns the processed file.
+    
+    Expected JSON Request Body:
+        {
+            'columns': List[Dict[str, str]],  # Original and display names
+            'tagName': str,  # Optional tag column name
+            'tagValue': str,  # Optional tag value
+            'removeDuplicates': bool  # Whether to remove duplicate emails
+        }
+    
+    Returns:
+        Union[Response, Tuple[Response, int]]: CSV file response or error message
+        with appropriate status code.
+        
+    Response Format:
+        Success (200): CSV file with Content-Type: text/csv
+        Error (400/500): JSON response with error message
+            {
+                'error': str
+            }
+    """
     try:
         if not request.is_json:
             return jsonify({'error': 'No data found'}), 400
