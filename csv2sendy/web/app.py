@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, send_file, make_response, render_temp
 import tempfile
 import atexit
 import shutil
-from ..core import CSVProcessor
+from csv2sendy.core import CSVProcessor
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)

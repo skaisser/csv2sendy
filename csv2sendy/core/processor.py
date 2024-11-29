@@ -3,23 +3,24 @@ from email_validator import validate_email, EmailNotValidError
 import pandas as pd
 from io import StringIO
 import logging
+from typing import List, Optional, Union
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class CSVProcessor:
-    def __init__(self):
-        self.encodings = ['utf-8-sig', 'latin1', 'iso-8859-1', 'cp1252']
+    def __init__(self) -> None:
+        self.encodings: List[str] = ['utf-8-sig', 'latin1', 'iso-8859-1', 'cp1252']
 
-    def process_file(self, file_content, delimiter=None):
+    def process_file(self, file_content: Union[str, StringIO], delimiter: Optional[str] = None) -> pd.DataFrame:
         """Process a CSV file content and return normalized DataFrame.
         
         Args:
-            file_content (str): Content of the CSV file
+            file_content (Union[str, StringIO]): Content of the CSV file
             delimiter (str, optional): CSV delimiter. If None, will be auto-detected
             
         Returns:
-            pandas.DataFrame: Processed and normalized data
+            pd.DataFrame: Processed and normalized DataFrame
         """
         if delimiter is None:
             delimiter = self.detect_delimiter(file_content)
@@ -29,14 +30,14 @@ class CSVProcessor:
         logger.debug(f"Initial columns: {df.columns.tolist()}")
         return self.process_dataframe(df)
     
-    def process_dataframe(self, df):
+    def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Process a pandas DataFrame with normalization rules.
         
         Args:
-            df (pandas.DataFrame): Input DataFrame
+            df (pd.DataFrame): Input DataFrame
             
         Returns:
-            pandas.DataFrame: Processed and normalized DataFrame
+            pd.DataFrame: Processed and normalized DataFrame
         """
         # Remove rows where all fields are empty
         df = df.dropna(how='all')
@@ -82,11 +83,11 @@ class CSVProcessor:
         return processed_df[final_column_order]
     
     @staticmethod
-    def detect_delimiter(content):
+    def detect_delimiter(content: Union[str, StringIO]) -> str:
         """Detect the delimiter used in a CSV content.
         
         Args:
-            content (str): CSV content
+            content (Union[str, StringIO]): CSV content
             
         Returns:
             str: Detected delimiter
@@ -99,7 +100,7 @@ class CSVProcessor:
         return delimiter
     
     @staticmethod
-    def process_name(name):
+    def process_name(name: str) -> tuple:
         """Process a name into first and last name components.
         
         Args:
@@ -120,7 +121,7 @@ class CSVProcessor:
             return (parts[0].title(), ' '.join(parts[1:]).title())
     
     @staticmethod
-    def format_phone_number(phone):
+    def format_phone_number(phone: str) -> str:
         """Format a phone number to Brazilian standard.
         
         Args:
@@ -150,7 +151,7 @@ class CSVProcessor:
         return ''
     
     @staticmethod
-    def validate_email_address(email):
+    def validate_email_address(email: str) -> str:
         """Validate and normalize an email address.
         
         Args:
@@ -175,11 +176,11 @@ class CSVProcessor:
             return ''
     
     @staticmethod
-    def _get_column_mapping(columns):
+    def _get_column_mapping(columns: List[str]) -> dict:
         """Get mapping of original column names to normalized names.
         
         Args:
-            columns (list): List of original column names
+            columns (List[str]): List of original column names
             
         Returns:
             dict: Mapping of original to normalized names
