@@ -82,6 +82,21 @@ python -m csv2sendy.web.app
 
 Visit http://localhost:8080 in your browser.
 
+### Command Line Interface (CLI)
+
+```bash
+# Start the web server on default port (8080)
+csv2sendy
+
+# Start the web server on a specific port
+csv2sendy 3000
+
+# Get help
+csv2sendy --help
+```
+
+The CLI provides a convenient way to start the web interface. By default, it starts the server on port 8080, but you can specify a different port as a command-line argument.
+
 ### Python API
 
 ```python
