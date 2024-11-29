@@ -12,194 +12,101 @@ Key Features:
 """
 
 import os
-from typing import Dict, Any, Optional, Union, Tuple, List, cast
-from flask import Flask, request, jsonify, send_file, make_response, render_template, Response
 import tempfile
-import atexit
-import shutil
-from csv2sendy.core import CSVProcessor
-import pandas as pd
+from flask import Flask, request, send_file, jsonify
+from werkzeug.utils import secure_filename
+from csv2sendy.core.processor import CSVProcessor
 
+
+TEMP_DIR = tempfile.gettempdir()
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+app.config['UPLOAD_FOLDER'] = TEMP_DIR
+app.config['ALLOWED_EXTENSIONS'] = {'csv', 'txt'}
 
-# Create a temporary directory for file storage
-TEMP_DIR = tempfile.mkdtemp()
 
-def cleanup_temp_files() -> None:
-    """Clean up temporary files when the application exits.
-    
-    This function is registered with atexit to ensure proper cleanup
-    of temporary files even if the application crashes.
-    """
-    if os.path.exists(TEMP_DIR):
-        shutil.rmtree(TEMP_DIR)
+def cleanup_temp_files():
+    """Clean up temporary files."""
+    for filename in os.listdir(TEMP_DIR):
+        if filename.endswith('.csv'):
+            os.remove(os.path.join(TEMP_DIR, filename))
 
-atexit.register(cleanup_temp_files)
+
+def allowed_file(filename):
+    """Check if file extension is allowed."""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
 
 @app.route('/')
-def index() -> str:
-    """Render the main application page.
-    
-    Returns:
-        str: The rendered HTML template for the main page.
-    """
-    return render_template('index.html')
+def home():
+    """Render home page."""
+    return '''
+    <html>
+        <head>
+            <title>CSV2Sendy - Brazilian CSV Processor</title>
+        </head>
+        <body>
+            <h1>CSV2Sendy</h1>
+            <form method="post" action="/upload" enctype="multipart/form-data">
+                <input type="file" name="file">
+                <input type="submit" value="Upload">
+            </form>
+        </body>
+    </html>
+    '''
+
 
 @app.route('/upload', methods=['POST'])
-def upload_file() -> Union[Response, Tuple[Response, int]]:
-    """Handle file upload and CSV processing.
-    
-    Accepts a CSV file upload, processes it using CSVProcessor,
-    and stores the processed data for later download.
-    
-    Returns:
-        Union[Response, Tuple[Response, int]]: JSON response with processed data
-        or error message with appropriate status code.
-        
-    Response Format:
-        Success (200):
-            {
-                'data': List[Dict[str, Any]],  # Processed records
-                'headers': List[str]  # Column names
-            }
-        Error (400):
-            {
-                'error': str  # Error message
-            }
-    """
+def upload_file():
+    """Handle file upload."""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    if not file.filename.endswith('.csv'):
+        return jsonify({'error': 'Invalid file type'}), 400
+
     try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file uploaded'}), 400
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
 
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-        
-        if not file.filename or not file.filename.endswith('.csv'):
-            return jsonify({'error': 'Please upload a CSV file'}), 400
-
-        # Try different encodings
-        file_content: Optional[str] = None
-        encodings = ['utf-8-sig', 'utf-8']  # Only allow UTF-8 encodings
-        
-        for encoding in encodings:
-            try:
-                file_content = file.read().decode(encoding)
-                file.seek(0)  # Reset file pointer for next iteration if needed
-                break
-            except UnicodeDecodeError:
-                file.seek(0)
-                continue
-        
-        if file_content is None:
-            return jsonify({'error': 'Unable to decode file. Please ensure it is properly encoded in UTF-8.'}), 400
+        # Process the file
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
 
         processor = CSVProcessor()
-        processed_df = processor.process_file(file_content)
+        df = processor.process_csv(content)
 
-        # Store processed data in a temporary file
-        temp_file = os.path.join(TEMP_DIR, 'data.csv')
-        processed_df.to_csv(temp_file, index=False)
+        # Save processed file
+        output_filename = 'processed_' + filename
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        df.to_csv(output_path, index=False)
 
-        # Convert to records for JSON response
-        raw_data = processed_df.to_dict('records')
-        processed_data: List[Dict[str, Any]] = cast(List[Dict[str, Any]], raw_data)
-        processed_headers: List[str] = processed_df.columns.tolist()
-        
-        response: Response = jsonify({
-            'data': processed_data,
-            'headers': processed_headers,
+        return jsonify({
+            'message': 'File processed successfully',
+            'download_url': f'/download/{output_filename}'
         })
-        return response
-        
+
+    except UnicodeDecodeError:
+        return jsonify({'error': 'Invalid file encoding'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/download', methods=['POST'])
-def download() -> Union[Response, Tuple[Response, int]]:
-    """Handle file download with custom column mapping.
-    
-    Processes the stored CSV file with custom column mapping,
-    adds tags if specified, and returns the processed file.
-    
-    Expected JSON Request Body:
-        {
-            'columns': List[Dict[str, str]],  # Original and display names
-            'tagName': str,  # Optional tag column name
-            'tagValue': str,  # Optional tag value
-            'removeDuplicates': bool  # Whether to remove duplicate emails
-        }
-    
-    Returns:
-        Union[Response, Tuple[Response, int]]: CSV file response or error message
-        with appropriate status code.
-        
-    Response Format:
-        Success (200): CSV file with Content-Type: text/csv
-        Error (400/500): JSON response with error message
-            {
-                'error': str
-            }
-    """
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    """Handle file download."""
     try:
-        if not request.is_json:
-            return jsonify({'error': 'No data found'}), 400
-
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data found'}), 400
-
-        temp_file = os.path.join(TEMP_DIR, 'data.csv')
-        if not os.path.exists(temp_file):
-            return jsonify({'error': 'No data found. Please upload a file first.'}), 400
-
-        # Read the stored CSV
-        try:
-            df = pd.read_csv(temp_file)
-        except Exception as e:
-            return jsonify({'error': f'Failed to read data: {str(e)}'}), 500
-
-        columns = data.get('columns', [])
-        tag_name = data.get('tagName')
-        tag_value = data.get('tagValue')
-        remove_duplicates = data.get('removeDuplicates', True)
-
-        # Process the data based on selected columns
-        if columns:
-            try:
-                selected_columns = [col['originalName'] for col in columns]
-                df = df[selected_columns]
-
-                # Rename columns based on user input
-                rename_dict = {col['originalName']: col['displayName'] for col in columns}
-                df = df.rename(columns=rename_dict)
-            except KeyError as e:
-                return jsonify({'error': f'Invalid column name: {str(e)}'}), 400
-
-        # Add tag column if specified
-        if tag_name and tag_value:
-            df[tag_name] = tag_value
-
-        # Remove duplicate emails if requested
-        if remove_duplicates and columns:
-            email_column = next((col['displayName'] for col in columns if col['originalName'] == 'email'), 'Email')
-            if email_column in df.columns:
-                df = df.drop_duplicates(subset=[email_column], keep='first')
-
-        # Create the CSV content
-        output = df.to_csv(index=False, encoding='utf-8')
-        
-        # Create the response
-        response: Response = make_response(output)
-        response.headers['Content-Type'] = 'text/csv'
-        response.headers['Content-Disposition'] = 'attachment; filename=processed_data.csv'
-        
-        return response
-        
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        return send_file(filepath, as_attachment=True)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(debug=True)

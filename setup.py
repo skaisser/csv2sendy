@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="csv2sendy",
-    version="1.0.1",
+    version="1.0.2",
     author="Shirleyson Kaisser",
     author_email="skaisser@gmail.com",
     description="A CSV processor for Sendy.co with Brazilian data format support",
