@@ -93,7 +93,25 @@ def test_download_valid_file(client):
     """Test download endpoint with valid file."""
     filename = 'test.csv'
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    with open(filepath, 'w') as f:
-        f.write('test content')
-    response = client.get(f'/download/{filename}')
-    assert response.status_code == 200
+    content = 'test content'
+    
+    try:
+        # Write content and ensure file is properly closed
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # Verify file exists and is readable
+        assert os.path.exists(filepath), f"File {filepath} was not created"
+        assert os.access(filepath, os.R_OK), f"File {filepath} is not readable"
+        
+        with open(filepath, 'r', encoding='utf-8') as f:
+            assert f.read() == content, "File content verification failed"
+        
+        response = client.get(f'/download/{filename}')
+        assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
+        assert response.data.decode() == content, "Downloaded content does not match original"
+        
+    finally:
+        # Clean up the test file
+        if os.path.exists(filepath):
+            os.remove(filepath)

@@ -13,8 +13,8 @@ Key Features:
 
 import os
 import tempfile
-from typing import Tuple, Union
-from flask import Flask, request, send_file, jsonify
+from typing import Tuple, Union, cast
+from flask import Flask, request, send_file, jsonify, Response
 from werkzeug.utils import secure_filename
 from werkzeug.wrappers import Response
 from csv2sendy.core.processor import CSVProcessor
@@ -63,14 +63,14 @@ def home() -> str:
 def upload_file() -> Tuple[Response, int]:
     """Handle file upload."""
     if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
+        return cast(Tuple[Response, int], (jsonify({'error': 'No file part'}), 400))
 
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+        return cast(Tuple[Response, int], (jsonify({'error': 'No selected file'}), 400))
 
     if not file.filename.endswith('.csv'):
-        return jsonify({'error': 'Invalid file type'}), 400
+        return cast(Tuple[Response, int], (jsonify({'error': 'Invalid file type'}), 400))
 
     try:
         filename = secure_filename(file.filename)
@@ -89,15 +89,15 @@ def upload_file() -> Tuple[Response, int]:
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
         df.to_csv(output_path, index=False)
 
-        return jsonify({
+        return cast(Tuple[Response, int], (jsonify({
             'message': 'File processed successfully',
             'download_url': f'/download/{output_filename}'
-        }), 200
+        }), 200))
 
     except UnicodeDecodeError:
-        return jsonify({'error': 'Invalid file encoding'}), 500
+        return cast(Tuple[Response, int], (jsonify({'error': 'Invalid file encoding'}), 500))
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return cast(Tuple[Response, int], (jsonify({'error': str(e)}), 500))
 
 
 @app.route('/download/<filename>')
@@ -107,7 +107,7 @@ def download_file(filename: str) -> Union[Response, Tuple[Response, int]]:
         return send_file(
             os.path.join(app.config['UPLOAD_FOLDER'], filename),
             as_attachment=True,
-            attachment_filename=filename
+            mimetype='text/csv'
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
