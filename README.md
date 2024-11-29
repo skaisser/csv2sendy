@@ -8,7 +8,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/skaisser/csv2sendy/badge.svg?branch=main)](https://coveralls.io/github/skaisser/csv2sendy?branch=main)
 [![Documentation Status](https://readthedocs.org/projects/csv2sendy/badge/?version=latest)](https://csv2sendy.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Downloads](https://pepy.tech/badge/csv2sendy)](https://pepy.tech/project/csv2sendy)
 
 A powerful tool for processing CSV files for Sendy.co email imports with special support for Brazilian data formats.

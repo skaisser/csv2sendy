@@ -42,7 +42,6 @@ setup(
         "dev": [
             "pytest>=6.0",
             "pytest-cov>=2.0",
-            "black>=21.0",
             "isort>=5.0",
             "flake8>=3.9",
             "pre-commit>=2.15",
@@ -53,7 +52,6 @@ setup(
         "test": [
             "pytest>=6.0",
             "pytest-cov>=2.0",
-            "black>=21.0",
             "mypy>=1.0.0",
             "coveralls>=3.3.1",
         ],
