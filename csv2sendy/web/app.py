@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Optional, Union, Tuple
+from typing import Dict, Any, Optional, Union, Tuple, List
 from flask import Flask, request, jsonify, send_file, make_response, render_template, Response
 import tempfile
 import atexit
@@ -36,7 +36,7 @@ def upload_file() -> Union[Response, Tuple[Response, int]]:
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
-        if not file.filename.endswith('.csv'):
+        if not file.filename or not file.filename.endswith('.csv'):
             return jsonify({'error': 'Please upload a CSV file'}), 400
 
         # Try different encodings
@@ -63,13 +63,14 @@ def upload_file() -> Union[Response, Tuple[Response, int]]:
         processed_df.to_csv(temp_file, index=False)
 
         # Convert to records for JSON response
-        processed_data = processed_df.to_dict('records')
-        processed_headers = processed_df.columns.tolist()
+        processed_data: List[Dict[str, Any]] = processed_df.to_dict('records')
+        processed_headers: List[str] = processed_df.columns.tolist()
         
-        return jsonify({
+        response: Response = jsonify({
             'data': processed_data,
             'headers': processed_headers,
         })
+        return response
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -118,7 +119,7 @@ def download() -> Union[Response, Tuple[Response, int]]:
         output = df.to_csv(index=False, encoding='utf-8')
         
         # Create the response
-        response = make_response(output)
+        response: Response = make_response(output)
         response.headers['Content-Type'] = 'text/csv'
         response.headers['Content-Disposition'] = 'attachment; filename=processed_data.csv'
         

@@ -3,7 +3,7 @@ from email_validator import validate_email, EmailNotValidError
 import pandas as pd
 from io import StringIO
 import logging
-from typing import List, Optional, Union, Dict, Any, Tuple, cast
+from typing import List, Optional, Union, Dict, Any, Tuple
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -168,7 +168,7 @@ class CSVProcessor:
             
             # Validate email
             validation = validate_email(email, check_deliverability=False)
-            return cast(str, validation.email)
+            return validation.email
             
         except EmailNotValidError:
             return ''
