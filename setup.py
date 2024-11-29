@@ -57,9 +57,11 @@ setup(
         "test": [
             "pytest>=6.0",
             "pytest-cov>=2.0",
-            "mypy>=1.0.0",
             "coveralls>=3.3.1",
             "pandas-stubs<2.0.0",
+            "types-flask",
+            "types-Werkzeug",
+            "mypy>=1.0.0",
         ],
     },
     entry_points={

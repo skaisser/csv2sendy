@@ -25,10 +25,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .[test]
-        pip install pytest pytest-cov coveralls mypy
+        pip install pytest pytest-cov coveralls mypy pandas-stubs
         
     - name: Run mypy
-      run: mypy csv2sendy
+      run: |
+        mypy --install-types --non-interactive csv2sendy
       
     - name: Run tests with coverage
       run: |
