@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="csv2sendy",
-    version="0.1.0",
+    version="1.0.0",
     author="Shirleyson Kaisser",
     author_email="skaisser@gmail.com",
     description="A CSV processor for Sendy.co with Brazilian data format support",
@@ -19,13 +19,16 @@ setup(
         "Documentation": "https://csv2sendy.readthedocs.io/",
     },
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Text Processing :: General",
     ],
     packages=find_packages(),
     python_requires=">=3.9",

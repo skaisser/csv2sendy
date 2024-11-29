@@ -1,6 +1,24 @@
 Changelog
 =========
 
+1.0.0 (2024-03-20)
+------------------
+
+First stable release! 🎉
+
+Major Features:
+- Production-ready Brazilian data format support
+- Robust phone number handling with DDD support
+- Advanced column mapping and data validation
+- Comprehensive web interface
+- 95% test coverage
+- Complete documentation
+
+Changes from 0.2.0:
+- Stabilized API
+- Finalized documentation
+- Production-ready release
+
 0.2.0 (2024-03-20)
 ------------------
 
