@@ -169,19 +169,26 @@ class CSVProcessor:
         # Remove leading zeros
         numbers = numbers.lstrip('0')
         
-        # Check length and add country code if needed
+        # Handle different formats
         if len(numbers) == 13 and numbers.startswith('55'):  # Full international format
             numbers = numbers[2:]  # Remove country code
         elif len(numbers) == 12 and numbers.startswith('55'):  # Full international format without 9
             numbers = numbers[2:]  # Remove country code
+        elif len(numbers) == 9:  # 9-digit mobile without DDD
+            return ''  # Invalid format
+        elif len(numbers) == 8:  # 8-digit landline without DDD
+            return ''  # Invalid format
             
-        # Handle different formats
-        if len(numbers) == 11:  # Mobile with DDD
-            return f'+55 ({numbers[:2]}) {numbers[2:7]}-{numbers[7:]}'
-        elif len(numbers) == 10:  # Landline with DDD
-            return f'+55 ({numbers[:2]}) {numbers[2:6]}-{numbers[6:]}'
+        # Format with DDD
+        if len(numbers) == 11:  # Mobile with DDD (e.g. 11999999999)
+            ddd = numbers[:2]
+            local = numbers[2:]
+            return f'+55 ({ddd}) {local[:5]}-{local[5:]}'
+        elif len(numbers) == 10:  # Landline with DDD (e.g. 1199999999)
+            return ''  # Invalid format
         
-        return ''  # Invalid format
+        # Any other length is invalid
+        return ''
     
     @staticmethod
     def validate_email_address(email: str) -> str:
@@ -223,7 +230,9 @@ class CSVProcessor:
             normalized = col.lower().strip()
             
             # Name variations
-            if any(name in normalized for name in ['nome', 'name']):
+            if normalized == 'nome':
+                mapping[col] = 'first_name'
+            elif 'name' in normalized:
                 mapping[col] = 'name'
             
             # Email variations

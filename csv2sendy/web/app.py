@@ -82,7 +82,7 @@ def upload_file() -> Union[Response, Tuple[Response, int]]:
 
         # Try different encodings
         file_content: Optional[str] = None
-        encodings = ['utf-8-sig', 'latin1', 'iso-8859-1', 'cp1252']
+        encodings = ['utf-8-sig', 'utf-8']  # Only allow UTF-8 encodings
         
         for encoding in encodings:
             try:
@@ -94,7 +94,7 @@ def upload_file() -> Union[Response, Tuple[Response, int]]:
                 continue
         
         if file_content is None:
-            return jsonify({'error': 'Unable to decode file. Please ensure it is properly encoded.'}), 400
+            return jsonify({'error': 'Unable to decode file. Please ensure it is properly encoded in UTF-8.'}), 400
 
         processor = CSVProcessor()
         processed_df = processor.process_file(file_content)

@@ -53,3 +53,40 @@ def test_process_file():
     assert df.iloc[0]['last_name'] == 'Doe'
     assert df.iloc[0]['email'] == 'john@example.com'
     assert df.iloc[0]['phone_number'] == '+55 (11) 99999-9999'
+
+def test_format_phone_number_with_country_code():
+    """Test phone number formatting with country code."""
+    processor = CSVProcessor()
+    
+    # Test with country code and 9-digit mobile
+    assert processor.format_phone_number('5511999999999') == '+55 (11) 99999-9999'
+    
+    # Test with country code and 8-digit landline
+    assert processor.format_phone_number('5511999999') == ''  # Invalid format
+
+def test_format_phone_number_invalid():
+    """Test phone number formatting with invalid numbers."""
+    processor = CSVProcessor()
+    
+    # Test with invalid formats
+    assert processor.format_phone_number('123') == ''  # Too short
+    assert processor.format_phone_number('999999999999999') == ''  # Too long
+    assert processor.format_phone_number('abcdefghijk') == ''  # Non-numeric
+
+def test_column_mapping_variations():
+    """Test column name mapping with various formats."""
+    processor = CSVProcessor()
+    
+    # Test various column name formats
+    columns = [
+        'nome',  # Should map to first_name
+        'email address',  # Should map to email
+        'telefone celular',  # Should map to phone
+        'custom field',  # Should keep original
+    ]
+    
+    mapping = processor._get_column_mapping(columns)
+    assert mapping['nome'] == 'first_name'
+    assert mapping['email address'] == 'email'
+    assert mapping['telefone celular'] == 'phone'
+    assert mapping['custom field'] == 'custom field'

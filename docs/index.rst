@@ -3,19 +3,34 @@ Welcome to CSV2Sendy's documentation!
 
 CSV2Sendy is a powerful CSV processor for Sendy.co with Brazilian data format support.
 It helps you process CSV files containing contact information and format them according
-to Sendy.co's requirements.
+to Sendy.co's requirements, with special handling for Brazilian data formats.
 
 Features
 --------
 
-- Brazilian data format support
-- Name processing (handles 'sem nome' case)
-- Phone number formatting (+55 prefix)
-- Email validation and normalization
-- Web interface for CSV transformation
-- Custom column mapping
-- Tag addition
-- Duplicate email removal
+- Advanced Brazilian data format support
+  - Smart name processing (handles 'sem nome' case)
+  - Robust phone number formatting with DDD support
+  - Brazilian address formatting
+- Phone number processing
+  - International format (+55 prefix)
+  - DDD (area code) validation
+  - Mobile and landline number support
+  - Automatic format detection
+- Email handling
+  - Strict email validation
+  - Email normalization
+  - Duplicate removal
+- Web interface
+  - File upload with multiple encoding support
+  - Interactive column mapping
+  - Tag management
+  - Preview and download
+- Data transformation
+  - Flexible column mapping
+  - Custom tag addition
+  - Data validation and cleaning
+  - UTF-8 encoding support
 
 Contents
 --------
@@ -39,6 +54,15 @@ You can install CSV2Sendy using pip:
 
    pip install csv2sendy
 
+Requirements
+-----------
+
+- Python 3.9 or higher
+- pandas >= 1.3.0
+- email-validator >= 1.1.0
+- flask >= 2.0.0
+- werkzeug >= 2.0.0
+
 Quick Start
 ----------
 
@@ -52,12 +76,38 @@ Here's a simple example of how to use CSV2Sendy:
    processor = CSVProcessor()
 
    # Process a CSV file
-   with open('contacts.csv', 'r') as f:
-       content = f.read()
-       df = processor.process_file(content)
+   result = processor.process_file('contacts.csv')
 
-   # Save the processed file
-   df.to_csv('processed_contacts.csv', index=False)
+   # Save the processed data
+   result.to_csv('processed_contacts.csv', index=False)
+
+Web Interface
+------------
+
+CSV2Sendy also provides a web interface for easy file processing:
+
+.. code-block:: bash
+
+   # Start the web server
+   python -m csv2sendy.web.app
+
+Then open your browser and navigate to http://localhost:8080 to use the web interface.
+
+Contributing
+-----------
+
+We welcome contributions! Please check our `Contributing Guide <contributing.html>`_ for details on how to:
+
+- Report bugs
+- Suggest features
+- Submit pull requests
+- Run tests
+- Update documentation
+
+License
+-------
+
+CSV2Sendy is open source software licensed under the MIT license.
 
 Indices and tables
 ==================
