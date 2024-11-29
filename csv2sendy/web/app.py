@@ -5,6 +5,7 @@ import tempfile
 import atexit
 import shutil
 from csv2sendy.core import CSVProcessor
+import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -80,38 +81,46 @@ def upload_file() -> Union[Response, Tuple[Response, int]]:
 def download() -> Union[Response, Tuple[Response, int]]:
     """Handle file download with custom column mapping."""
     try:
-        temp_file = os.path.join(TEMP_DIR, 'data.csv')
-        
-        if not os.path.exists(temp_file):
-            return jsonify({'error': 'No data found. Please upload a file first.'}), 400
-            
+        if not request.is_json:
+            return jsonify({'error': 'No data found'}), 400
+
         data = request.get_json()
         if not data:
-            return jsonify({'error': 'No data received'}), 400
+            return jsonify({'error': 'No data found'}), 400
+
+        temp_file = os.path.join(TEMP_DIR, 'data.csv')
+        if not os.path.exists(temp_file):
+            return jsonify({'error': 'No data found. Please upload a file first.'}), 400
+
+        # Read the stored CSV
+        try:
+            df = pd.read_csv(temp_file)
+        except Exception as e:
+            return jsonify({'error': f'Failed to read data: {str(e)}'}), 500
 
         columns = data.get('columns', [])
         tag_name = data.get('tagName')
         tag_value = data.get('tagValue')
         remove_duplicates = data.get('removeDuplicates', True)
 
-        # Read the stored CSV
-        processor = CSVProcessor()
-        df = processor.process_file(temp_file)
-
         # Process the data based on selected columns
-        selected_columns = [col['originalName'] for col in columns]
-        df = df[selected_columns]
+        if columns:
+            try:
+                selected_columns = [col['originalName'] for col in columns]
+                df = df[selected_columns]
 
-        # Rename columns based on user input
-        rename_dict = {col['originalName']: col['displayName'] for col in columns}
-        df = df.rename(columns=rename_dict)
+                # Rename columns based on user input
+                rename_dict = {col['originalName']: col['displayName'] for col in columns}
+                df = df.rename(columns=rename_dict)
+            except KeyError as e:
+                return jsonify({'error': f'Invalid column name: {str(e)}'}), 400
 
         # Add tag column if specified
         if tag_name and tag_value:
             df[tag_name] = tag_value
 
         # Remove duplicate emails if requested
-        if remove_duplicates:
+        if remove_duplicates and columns:
             email_column = next((col['displayName'] for col in columns if col['originalName'] == 'email'), 'Email')
             if email_column in df.columns:
                 df = df.drop_duplicates(subset=[email_column], keep='first')
