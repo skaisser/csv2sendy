@@ -31,6 +31,7 @@ setup(
         "Topic :: Office/Business",
     ],
     packages=find_packages(exclude=["tests*"]),
+    package_data={"csv2sendy": ["py.typed"]},
     python_requires=">=3.8",
     install_requires=[
         "pandas>=1.3.0",
@@ -54,6 +55,7 @@ setup(
             "pytest-cov>=2.0",
             "mypy>=1.0.0",
             "coveralls>=3.3.1",
+            "pandas-stubs>=2.1.1",
         ],
     },
     entry_points={
