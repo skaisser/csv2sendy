@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Optional, Union, Tuple, List
+from typing import Dict, Any, Optional, Union, Tuple, List, cast
 from flask import Flask, request, jsonify, send_file, make_response, render_template, Response
 import tempfile
 import atexit
@@ -63,7 +63,8 @@ def upload_file() -> Union[Response, Tuple[Response, int]]:
         processed_df.to_csv(temp_file, index=False)
 
         # Convert to records for JSON response
-        processed_data: List[Dict[str, Any]] = processed_df.to_dict('records')
+        raw_data = processed_df.to_dict('records')
+        processed_data: List[Dict[str, Any]] = cast(List[Dict[str, Any]], raw_data)
         processed_headers: List[str] = processed_df.columns.tolist()
         
         response: Response = jsonify({

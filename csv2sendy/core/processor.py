@@ -160,15 +160,12 @@ class CSVProcessor:
             str: Normalized email address or empty string if invalid
         """
         try:
-            # Clean up the email string
-            email = email.strip().lower()
-            
             if not email:
                 return ''
             
             # Validate email
             validation = validate_email(email, check_deliverability=False)
-            return validation.email
+            return str(validation.email)  # Explicitly cast to str
             
         except EmailNotValidError:
             return ''
