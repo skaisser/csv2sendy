@@ -49,20 +49,21 @@ setup(
             "pytest-cov>=2.0",
             "isort>=5.0",
             "flake8>=3.9",
-            "pre-commit>=2.15",
-            "twine>=3.4",
-            "build>=0.7",
-            "mypy>=1.0.0",
         ],
         "test": [
             "pytest>=6.0",
             "pytest-cov>=2.0",
-            "coveralls>=3.3.1",
+            "coveralls>=3.0",
+            "mypy==1.13.0",
             "pandas-stubs<2.0.0",
             "types-flask",
             "types-Werkzeug",
-            "mypy>=1.0.0",
         ],
+        "doc": [
+            "sphinx>=4.0",
+            "sphinx-rtd-theme>=0.5",
+            "myst-parser>=0.15",
+        ]
     },
     entry_points={
         "console_scripts": [

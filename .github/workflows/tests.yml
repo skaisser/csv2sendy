@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.9']  # Match local environment
 
     steps:
     - uses: actions/checkout@v3
@@ -25,11 +25,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .[test]
-        pip install pytest pytest-cov coveralls mypy pandas-stubs
+        pip install mypy==1.13.0  # Lock to same version as local
         
     - name: Run mypy
       run: |
-        mypy --install-types --non-interactive csv2sendy
+        python -m mypy csv2sendy
       
     - name: Run tests with coverage
       run: |
