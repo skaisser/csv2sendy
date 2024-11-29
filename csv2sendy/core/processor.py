@@ -1,6 +1,7 @@
 """Process CSV files for Sendy compatibility."""
 
 import re
+from typing import Dict, Optional, Any
 import pandas as pd
 from io import StringIO
 from email_validator import validate_email, EmailNotValidError
@@ -9,7 +10,7 @@ from email_validator import validate_email, EmailNotValidError
 class CSVProcessor:
     """Process CSV files for Sendy compatibility."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize CSVProcessor."""
         self.column_mapping = {
             'nome': 'name',
@@ -22,7 +23,7 @@ class CSVProcessor:
             'e-mail': 'email'
         }
 
-    def process_name(self, name):
+    def process_name(self, name: Optional[str]) -> Dict[str, str]:
         """Process a name into first and last name components."""
         if not name or name.lower() == 'sem nome':
             return {'first_name': '', 'last_name': ''}
@@ -33,7 +34,7 @@ class CSVProcessor:
         else:
             return {'first_name': parts[0], 'last_name': ' '.join(parts[1:])}
 
-    def format_phone_number(self, phone):
+    def format_phone_number(self, phone: Optional[Any]) -> str:
         """Format phone number to Brazilian format."""
         if not phone:
             return ''
@@ -58,7 +59,7 @@ class CSVProcessor:
 
         return numbers
 
-    def validate_email_address(self, email):
+    def validate_email_address(self, email: Optional[Any]) -> str:
         """Validate email address format."""
         if not email:
             return ''
@@ -76,13 +77,13 @@ class CSVProcessor:
         except EmailNotValidError:
             return ''
 
-    def detect_delimiter(self, content):
+    def detect_delimiter(self, content: str) -> str:
         """Detect CSV delimiter."""
         delimiters = [',', ';']
         counts = {d: content.count(d) for d in delimiters}
         return max(counts.items(), key=lambda x: x[1])[0]
 
-    def _get_column_mapping(self, columns):
+    def _get_column_mapping(self, columns: pd.Index) -> Dict[str, str]:
         """Get column mapping for standardization."""
         mapping = {}
         for col in columns:
@@ -93,12 +94,12 @@ class CSVProcessor:
                 mapping[col] = col
         return mapping
 
-    def _standardize_columns(self, df):
+    def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Standardize column names."""
         mapping = self._get_column_mapping(df.columns)
         return df.rename(columns=mapping)
 
-    def _process_names(self, df):
+    def _process_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """Process names in the dataframe."""
         if 'name' not in df.columns:
             return df
@@ -108,14 +109,14 @@ class CSVProcessor:
         df = df.drop('name', axis=1)
         return df
 
-    def _process_emails(self, df):
+    def _process_emails(self, df: pd.DataFrame) -> pd.DataFrame:
         """Process emails in the dataframe."""
         if 'email' not in df.columns:
             return df
         df['email'] = df['email'].astype(str).apply(self.validate_email_address)
         return df
 
-    def _process_phones(self, df):
+    def _process_phones(self, df: pd.DataFrame) -> pd.DataFrame:
         """Process phone numbers in the dataframe."""
         if 'phone' not in df.columns:
             return df
@@ -123,7 +124,7 @@ class CSVProcessor:
         df = df.drop('phone', axis=1)
         return df
 
-    def process_csv(self, content):
+    def process_csv(self, content: str) -> pd.DataFrame:
         """Process CSV content."""
         delimiter = self.detect_delimiter(content)
         df = pd.read_csv(StringIO(content), delimiter=delimiter)
@@ -133,7 +134,7 @@ class CSVProcessor:
         df = self._process_phones(df)
         return df
 
-    def process_file(self, file_content):
+    def process_file(self, file_content: str) -> pd.DataFrame:
         """Process a CSV file."""
         try:
             return self.process_csv(file_content)

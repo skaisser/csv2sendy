@@ -13,8 +13,10 @@ Key Features:
 
 import os
 import tempfile
+from typing import Tuple, Dict, Any, Union
 from flask import Flask, request, send_file, jsonify
 from werkzeug.utils import secure_filename
+from werkzeug.wrappers import Response
 from csv2sendy.core.processor import CSVProcessor
 
 
@@ -25,21 +27,21 @@ app.config['UPLOAD_FOLDER'] = TEMP_DIR
 app.config['ALLOWED_EXTENSIONS'] = {'csv', 'txt'}
 
 
-def cleanup_temp_files():
+def cleanup_temp_files() -> None:
     """Clean up temporary files."""
     for filename in os.listdir(TEMP_DIR):
         if filename.endswith('.csv'):
             os.remove(os.path.join(TEMP_DIR, filename))
 
 
-def allowed_file(filename):
+def allowed_file(filename: str) -> bool:
     """Check if file extension is allowed."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 
 @app.route('/')
-def home():
+def home() -> str:
     """Render home page."""
     return '''
     <html>
@@ -58,7 +60,7 @@ def home():
 
 
 @app.route('/upload', methods=['POST'])
-def upload_file():
+def upload_file() -> Tuple[Response, int]:
     """Handle file upload."""
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -99,11 +101,14 @@ def upload_file():
 
 
 @app.route('/download/<filename>')
-def download_file(filename):
-    """Handle file download."""
+def download_file(filename: str) -> Union[Response, Tuple[Response, int]]:
+    """Download processed file."""
     try:
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        return send_file(filepath, as_attachment=True)
+        return send_file(
+            os.path.join(app.config['UPLOAD_FOLDER'], filename),
+            as_attachment=True,
+            download_name=filename
+        )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

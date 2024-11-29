@@ -4,7 +4,7 @@ import sys
 from flask import Flask
 from csv2sendy.web.app import app
 
-def main():
+def main() -> None:
     """Start the web application."""
     try:
         port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
