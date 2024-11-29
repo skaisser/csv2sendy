@@ -16,7 +16,7 @@ import tempfile
 from typing import Tuple, Union, cast
 from flask import Flask, request, send_file, jsonify, Response
 from werkzeug.utils import secure_filename
-from werkzeug.wrappers import Response
+from werkzeug.wrappers import Response as WerkzeugResponse
 from csv2sendy.core.processor import CSVProcessor
 
 
