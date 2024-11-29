@@ -42,7 +42,7 @@ setup(
             "mypy>=1.13.0",
             "types-flask>=1.1.0",
             "types-werkzeug>=1.0.0",
-            "types-pandas>=1.2.0",
+            "pandas-stubs>=2.0.0",
         ],
         "docs": [
             "sphinx>=7.0.0",
