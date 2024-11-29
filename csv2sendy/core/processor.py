@@ -55,7 +55,8 @@ class CSVProcessor:
         
         # Process phone column
         if 'phone' in df.columns:
-            df['phone'] = df['phone'].apply(lambda x: self.format_phone_number(str(x)))
+            df['phone_number'] = df['phone'].apply(lambda x: self.format_phone_number(str(x)))
+            df = df.drop('phone', axis=1)
         
         # Process email column
         if 'email' in df.columns:
@@ -64,8 +65,8 @@ class CSVProcessor:
         
         # Define final column order
         final_column_order = [
-            'first_name', 'last_name', 'email', 'phone',
-            *[col for col in df.columns if col not in ['first_name', 'last_name', 'email', 'phone']]
+            'first_name', 'last_name', 'email', 'phone_number',
+            *[col for col in df.columns if col not in ['first_name', 'last_name', 'email', 'phone_number']]
         ]
         
         # Select only columns that exist in the DataFrame
@@ -102,9 +103,9 @@ class CSVProcessor:
             Tuple[str, str]: First name and last name
         """
         # Remove extra spaces and normalize case
-        name = ' '.join(name.split())
+        name = ' '.join(name.split()).lower()
         
-        if not name:
+        if not name or name == 'sem nome':
             return ('', '')
         
         # Split into parts
@@ -137,17 +138,19 @@ class CSVProcessor:
         # Remove leading zeros
         numbers = numbers.lstrip('0')
         
-        # Check length
-        if len(numbers) < 10 or len(numbers) > 11:
-            return ''
-        
-        # Format number
+        # Check length and add country code if needed
+        if len(numbers) == 13 and numbers.startswith('55'):  # Full international format
+            numbers = numbers[2:]  # Remove country code
+        elif len(numbers) == 12 and numbers.startswith('55'):  # Full international format without 9
+            numbers = numbers[2:]  # Remove country code
+            
+        # Handle different formats
         if len(numbers) == 11:  # Mobile with DDD
-            return f'({numbers[:2]}) {numbers[2:7]}-{numbers[7:]}'
+            return f'+55 ({numbers[:2]}) {numbers[2:7]}-{numbers[7:]}'
         elif len(numbers) == 10:  # Landline with DDD
-            return f'({numbers[:2]}) {numbers[2:6]}-{numbers[6:]}'
+            return f'+55 ({numbers[:2]}) {numbers[2:6]}-{numbers[6:]}'
         
-        return ''
+        return ''  # Invalid format
     
     @staticmethod
     def validate_email_address(email: str) -> str:
@@ -163,9 +166,12 @@ class CSVProcessor:
             if not email:
                 return ''
             
+            # Clean up and normalize email
+            email = email.strip().lower()
+            
             # Validate email
             validation = validate_email(email, check_deliverability=False)
-            return str(validation.email)  # Explicitly cast to str
+            return str(validation.email).lower()  # Ensure lowercase
             
         except EmailNotValidError:
             return ''
