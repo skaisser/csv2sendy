@@ -1,3 +1,0 @@
-[console_scripts]
-csv2sendy = csv2sendy.web.app:main
-
