@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sendy.co List CSV Parser</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366F1',   // Indigo
+                        secondary: '#8B5CF6',  // Purple
+                        accent: '#EC4899',     // Pink
+                        neutral: '#0F172A',    // Slate
+                        success: '#10B981',    // Emerald
+                        warning: '#F59E0B',    // Amber
+                        error: '#EF4444',      // Red
+                        surface: '#F8FAFC'     // Light gray
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s linear infinite',
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .drag-area.active {
+            @apply border-primary bg-indigo-50;
+        }
+        .column-item:hover {
+            @apply bg-gray-50;
+        }
+        .gradient-text {
+            @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent animate-gradient;
+        }
+        .glass-effect {
+            @apply backdrop-blur-lg bg-white/80;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-surface via-indigo-50 to-purple-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-5xl font-bold text-center mb-2 gradient-text">Sendy.co List CSV Parser</h1>
+        <p class="text-center mb-8 text-neutral/70">Transform your CSV files into Sendy.co-ready formats with ease</p>
+        
+        <!-- File Upload Section -->
+        <div class="glass-effect rounded-2xl shadow-lg mb-8 overflow-hidden border border-white/20">
+            <div class="p-6">
+                <h3 class="text-2xl font-semibold text-neutral mb-4">Upload Your File</h3>
+                <div id="dropZone" class="drag-area border-2 border-dashed border-gray-300 rounded-xl p-8 text-center transition-all duration-300">
+                    <div class="space-y-4">
+                        <i class="bi bi-cloud-upload text-4xl text-primary"></i>
+                        <p class="text-neutral/70">Drag & drop your CSV file here or</p>
+                        <button onclick="document.getElementById('fileInput').click()" 
+                                class="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-full transition-all duration-300 shadow-md hover:shadow-lg">
+                            Choose File
+                        </button>
+                        <input type="file" id="fileInput" accept=".csv" class="hidden">
+                    </div>
+                </div>
+                
+                <div class="loading hidden mt-4">
+                    <div class="flex items-center justify-center space-x-2">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span class="text-neutral/70">Processing...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Preview Section -->
+        <div id="previewSection" class="glass-effect rounded-2xl shadow-lg mb-8 hidden">
+            <div class="p-6">
+                <h3 class="text-2xl font-semibold text-neutral mb-6">Data Preview</h3>
+                
+                <!-- Tag Input -->
+                <div class="mb-6 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Tag Configuration</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="tagInput" class="block text-sm font-medium text-gray-700 mb-2">Tag Name</label>
+                            <input type="text" id="tagInput" value="tag"
+                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary
+                                          transition-colors duration-200">
+                        </div>
+                        <div>
+                            <label for="tagValue" class="block text-sm font-medium text-gray-700 mb-2">Tag Value</label>
+                            <input type="text" id="tagValue" placeholder="Will be set from filename"
+                                   class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary
+                                          transition-colors duration-200">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Column Manager -->
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Column Management</h4>
+                    <p class="text-sm text-gray-500 mb-4">Drag to reorder columns. Check to include in export. Edit names to rename columns.</p>
+                    <ul id="columnList" class="space-y-2">
+                        <!-- Column items will be added here dynamically -->
+                    </ul>
+                </div>
+
+                <!-- Filters -->
+                <div class="mb-6">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="removeDuplicates" checked
+                               class="rounded border-gray-300 text-primary focus:ring-primary">
+                        <label for="removeDuplicates" class="ml-2 text-sm text-gray-700">
+                            Remove duplicate emails
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr id="tableHeaders"></tr>
+                        </thead>
+                        <tbody id="tableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+
+                <!-- Download Button -->
+                <div class="text-center mt-6">
+                    <button onclick="downloadProcessedFile()" 
+                            class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors duration-300 flex items-center justify-center mx-auto">
+                        <i class="bi bi-download mr-2"></i> Download Processed File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="/static/main.js"></script>
+</body>
+</html>
