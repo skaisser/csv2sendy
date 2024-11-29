@@ -66,7 +66,6 @@ class CSVProcessor:
 
         # Convert to string if not already
         email = str(email).strip().lower()
-        
         # Remove mailto: prefix if present
         if email.startswith('mailto:'):
             email = email[7:]  # len('mailto:') == 7
