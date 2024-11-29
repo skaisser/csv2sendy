@@ -3,17 +3,16 @@
 <div align="center">
 
 [![PyPI version](https://badge.fury.io/py/csv2sendy.svg)](https://badge.fury.io/py/csv2sendy)
-[![Python Versions](https://img.shields.io/pypi/pyversions/csv2sendy.svg)](https://pypi.org/project/csv2sendy/)
+[![Python Version](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
 [![Tests](https://github.com/skaisser/csv2sendy/actions/workflows/tests.yml/badge.svg)](https://github.com/skaisser/csv2sendy/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/github/skaisser/csv2sendy/badge.svg?branch=main)](https://coveralls.io/github/skaisser/csv2sendy?branch=main)
 [![Documentation Status](https://readthedocs.org/projects/csv2sendy/badge/?version=latest)](https://csv2sendy.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://pepy.tech/badge/csv2sendy)](https://pepy.tech/project/csv2sendy)
+[![Code Style: Mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
 
-A powerful tool for processing CSV files for Sendy.co email imports with special support for Brazilian data formats.
+A powerful CSV processor for Sendy.co with Brazilian data format support.
 
 [Documentation](https://csv2sendy.readthedocs.io) |
-[PyPI Package](https://pypi.org/project/csv2sendy/) |
 [GitHub Repository](https://github.com/skaisser/csv2sendy)
 
 </div>
@@ -21,44 +20,44 @@ A powerful tool for processing CSV files for Sendy.co email imports with special
 ## 🌟 Features
 
 - 🔄 **Intelligent CSV Processing**
-  - Auto-detection of delimiters and encodings
+  - Auto-detection of delimiters (`,` or `;`)
+  - Multiple encoding support (utf-8-sig, latin1, iso-8859-1, cp1252)
   - Smart column mapping and normalization
-  - Robust error handling and reporting
+  - Robust error handling
 
-- 📧 **Email Processing**
+- 📧 **Email Validation**
   - RFC-compliant email validation
-  - Duplicate removal
   - Case normalization
-  - Domain validation (optional)
+  - Duplicate removal
+  - Invalid email filtering
 
-- 📱 **Phone Number Handling**
-  - Brazilian format support (+55 format)
-  - WhatsApp number validation
-  - International format conversion
-  - Auto-correction of common format issues
+- 📱 **Phone Number Processing**
+  - Brazilian format support
+  - Format standardization
+  - Invalid number filtering
+  - DDD (area code) validation
 
 - 👤 **Name Processing**
-  - Proper capitalization rules
   - First/last name splitting
+  - Proper capitalization
   - Special character handling
-  - Brazilian name format support
+  - Empty name filtering
 
 - 🌐 **Web Interface**
-  - Modern, responsive design
-  - Drag-and-drop file upload
-  - Real-time validation
-  - Progress tracking
-  - Column mapping UI
+  - File upload and processing
+  - Column mapping
+  - Tag management
+  - CSV download
 
 - 🔒 **Security**
   - Secure file handling
   - Automatic file cleanup
   - Input sanitization
-  - Rate limiting
+  - File size limits
 
 ## 📦 Installation
 
-### Using pip (Recommended)
+### Using pip
 
 ```bash
 pip install csv2sendy
@@ -74,153 +73,98 @@ pip install -e ".[dev]"
 
 ## 🚀 Quick Start
 
-### Command Line Interface
+### Web Interface
 
 ```bash
-# Start the web interface
-csv2sendy --port 8080
-
-# Process a file directly
-csv2sendy process input.csv -o output.csv
-
-# Show help
-csv2sendy --help
+# Start the web server
+python -m csv2sendy.web.app
 ```
+
+Visit http://localhost:8080 in your browser.
 
 ### Python API
 
 ```python
 from csv2sendy.core import CSVProcessor
 
-# Basic usage
+# Process a CSV file
 processor = CSVProcessor()
 df = processor.process_file('input.csv')
 df.to_csv('output.csv', index=False)
 
-# Advanced usage with options
-processor = CSVProcessor(
-    encodings=['utf-8-sig', 'latin1'],
-    validate_domains=True,
-    remove_duplicates=True
-)
-
-# Process from string content
-content = '''Name,Email,Phone
-John Doe,john@example.com,5511999999999'''
+# Process CSV content directly
+content = '''name,email,phone
+John Doe,john@example.com,(11) 98765-4321'''
 df = processor.process_file(content)
-
-# Process from DataFrame
-import pandas as pd
-df = pd.read_csv('input.csv')
-processed_df = processor.process_dataframe(df)
 ```
 
-### Web Interface
+## 💻 Development
 
-1. Start the server:
-   ```bash
-   csv2sendy
-   ```
+### Setup
 
-2. Open http://localhost:8080 in your browser
-3. Upload your CSV file
-4. Configure column mapping (or let auto-detection work)
-5. Download the processed file
-
-## 📋 Input Format
-
-CSV2Sendy accepts CSV files with the following columns (case-insensitive):
-
-- **Name/Nome**: Full name of the contact
-- **Email/E-mail**: Email address
-- **Phone/Telefone/WhatsApp**: Phone number
-
-Example input:
-```csv
-Name,Email,Phone
-John Doe,john@example.com,5511999999999
-Maria Silva,maria@example.com,11987654321
+1. Clone the repository:
+```bash
+git clone https://github.com/skaisser/csv2sendy.git
+cd csv2sendy
 ```
 
-## 📤 Output Format
-
-The tool produces a CSV file formatted for Sendy with the following columns:
-
-- `first_name`: First name of the contact
-- `last_name`: Last name of the contact (if available)
-- `email`: Validated and normalized email address
-- `phone_number`: Formatted phone number (+55 format)
-
-Example output:
-```csv
-first_name,last_name,email,phone_number
-John,Doe,john@example.com,+55 (11) 99999-9999
-Maria,Silva,maria@example.com,+55 (11) 98765-4321
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-## 🛠️ Development Setup
+3. Install development dependencies:
+```bash
+pip install -e ".[dev,test,doc]"
+```
 
-1. Clone and install dependencies:
-   ```bash
-   git clone https://github.com/skaisser/csv2sendy.git
-   cd csv2sendy
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -e ".[dev]"
-   ```
+### Testing
 
-2. Install pre-commit hooks:
-   ```bash
-   pre-commit install
-   ```
+Run tests with coverage:
+```bash
+pytest --cov=csv2sendy tests/
+```
 
-3. Run tests:
-   ```bash
-   pytest
-   pytest --cov=csv2sendy  # With coverage
-   ```
+Run type checking:
+```bash
+mypy csv2sendy
+```
 
-4. Format code:
-   ```bash
-   black csv2sendy tests
-   isort csv2sendy tests
-   ```
+### Documentation
+
+Build documentation:
+```bash
+cd docs
+make html
+```
+
+## 🔧 Dependencies
+
+- Python 3.9
+- pandas >= 1.3.0
+- email-validator >= 1.1.0
+- flask >= 2.0.0
+- werkzeug >= 2.0.0
 
 ## 🤝 Contributing
 
-We love your input! Check out our [Contributing Guide](CONTRIBUTING.md) for guidelines on how to proceed.
-
-1. Fork the repo
+1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run the tests (`pytest`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+3. Install development dependencies (`pip install -e ".[dev,test,doc]"`)
+4. Make your changes
+5. Run tests and type checking (`pytest` and `mypy csv2sendy`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
 
-## 📜 License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔒 Security
+## 👤 Author
 
-Found a security issue? Please email skaisser@gmail.com instead of using the issue tracker.
+**Shirleyson Kaisser**
 
-## 💬 Community & Support
-
-- 📖 [Documentation](https://csv2sendy.readthedocs.io)
-- 🐛 [Issue Tracker](https://github.com/skaisser/csv2sendy/issues)
-- 💡 [Discussions](https://github.com/skaisser/csv2sendy/discussions)
-- 📧 [Email Support](mailto:skaisser@gmail.com)
-
-## 🙏 Acknowledgments
-
-- [Sendy.co](https://sendy.co) for their amazing email marketing platform
-- All our [contributors](https://github.com/skaisser/csv2sendy/graphs/contributors)
-- The open-source community for the amazing tools we build upon
-
----
-
-<div align="center">
-Made with ❤️ by <a href="https://github.com/skaisser">skaisser</a>
-</div>
+- GitHub: [@skaisser](https://github.com/skaisser)
+- Email: skaisser@gmail.com
