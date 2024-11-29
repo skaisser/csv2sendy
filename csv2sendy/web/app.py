@@ -1,5 +1,6 @@
 import os
-from flask import Flask, request, jsonify, send_file, make_response, render_template
+from typing import Dict, Any, Optional, Union
+from flask import Flask, request, jsonify, send_file, make_response, render_template, Response
 import tempfile
 import atexit
 import shutil
@@ -12,19 +13,21 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Create a temporary directory for file storage
 TEMP_DIR = tempfile.mkdtemp()
 
-# Cleanup function to remove temporary directory on app shutdown
-def cleanup_temp_files():
+def cleanup_temp_files() -> None:
+    """Clean up temporary files when the application exits."""
     if os.path.exists(TEMP_DIR):
         shutil.rmtree(TEMP_DIR)
 
 atexit.register(cleanup_temp_files)
 
 @app.route('/')
-def index():
+def index() -> str:
+    """Render the main page."""
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
-def upload_file():
+def upload_file() -> Union[Response, tuple[Response, int]]:
+    """Handle file upload and processing."""
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
@@ -35,15 +38,15 @@ def upload_file():
         
         if not file.filename.endswith('.csv'):
             return jsonify({'error': 'Please upload a CSV file'}), 400
-        
+
         # Try different encodings
-        processor = CSVProcessor()
-        file_content = None
+        file_content: Optional[str] = None
+        encodings = ['utf-8-sig', 'latin1', 'iso-8859-1', 'cp1252']
         
-        for encoding in processor.encodings:
+        for encoding in encodings:
             try:
                 file_content = file.read().decode(encoding)
-                file.seek(0)
+                file.seek(0)  # Reset file pointer for next iteration if needed
                 break
             except UnicodeDecodeError:
                 file.seek(0)
@@ -51,14 +54,14 @@ def upload_file():
         
         if file_content is None:
             return jsonify({'error': 'Unable to decode file. Please ensure it is properly encoded.'}), 400
-        
-        # Process the file
+
+        processor = CSVProcessor()
         processed_df = processor.process_file(file_content)
-        
+
         # Store processed data in a temporary file
         temp_file = os.path.join(TEMP_DIR, 'data.csv')
         processed_df.to_csv(temp_file, index=False)
-        
+
         # Convert to records for JSON response
         processed_data = processed_df.to_dict('records')
         processed_headers = processed_df.columns.tolist()
@@ -66,14 +69,14 @@ def upload_file():
         return jsonify({
             'data': processed_data,
             'headers': processed_headers,
-            'original_headers': processed_df.columns.tolist()
         })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/download', methods=['POST'])
-def download():
+def download() -> Union[Response, tuple[Response, int]]:
+    """Handle file download with custom column mapping."""
     try:
         temp_file = os.path.join(TEMP_DIR, 'data.csv')
         
@@ -88,35 +91,34 @@ def download():
         tag_name = data.get('tagName')
         tag_value = data.get('tagValue')
         remove_duplicates = data.get('removeDuplicates', True)
-        
+
         # Read the stored CSV
-        import pandas as pd
-        df = pd.read_csv(temp_file)
-        
+        processor = CSVProcessor()
+        df = processor.process_file(temp_file)
+
         # Process the data based on selected columns
         selected_columns = [col['originalName'] for col in columns]
         df = df[selected_columns]
-        
+
         # Rename columns based on user input
         rename_dict = {col['originalName']: col['displayName'] for col in columns}
         df = df.rename(columns=rename_dict)
-        
+
         # Add tag column if specified
         if tag_name and tag_value:
             df[tag_name] = tag_value
-        
+
         # Remove duplicate emails if requested
         if remove_duplicates:
             email_column = next((col['displayName'] for col in columns if col['originalName'] == 'email'), 'Email')
             if email_column in df.columns:
                 df = df.drop_duplicates(subset=[email_column], keep='first')
-        
+
         # Create the CSV content
-        output = io.StringIO()
-        df.to_csv(output, index=False, encoding='utf-8')
+        output = df.to_csv(index=False, encoding='utf-8')
         
         # Create the response
-        response = make_response(output.getvalue())
+        response = make_response(output)
         response.headers['Content-Type'] = 'text/csv'
         response.headers['Content-Disposition'] = 'attachment; filename=processed_data.csv'
         
@@ -125,9 +127,5 @@ def download():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def main():
-    """Entry point for the application."""
-    app.run(host='0.0.0.0', port=8080)
-
 if __name__ == '__main__':
-    main()
+    app.run(host='0.0.0.0', port=8080)
