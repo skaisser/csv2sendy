@@ -11,33 +11,34 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9']  # Match local environment
+        python-version: ['3.13']
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .[dev]
+        python -m pip install -e .[dev]
         
     - name: Run mypy
       run: |
-        mypy csv2sendy
+        python -m mypy csv2sendy
       
     - name: Run tests with coverage
       run: |
-        pytest --cov=csv2sendy tests/
+        python -m pytest --cov=csv2sendy tests/ -v
         
     - name: Upload coverage to Coveralls
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       run: |
-        pip install coveralls
-        coveralls
+        python -m pip install coveralls
+        python -m coveralls
