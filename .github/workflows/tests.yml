@@ -24,12 +24,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .[test]
-        pip install mypy==1.13.0  # Lock to same version as local
+        pip install -e .[dev]
         
     - name: Run mypy
       run: |
-        python -m mypy csv2sendy
+        mypy csv2sendy
       
     - name: Run tests with coverage
       run: |
@@ -40,4 +39,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       run: |
+        pip install coveralls
         coveralls
