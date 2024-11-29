@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, Tuple
 from flask import Flask, request, jsonify, send_file, make_response, render_template, Response
 import tempfile
 import atexit
@@ -26,7 +26,7 @@ def index() -> str:
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
-def upload_file() -> Union[Response, tuple[Response, int]]:
+def upload_file() -> Union[Response, Tuple[Response, int]]:
     """Handle file upload and processing."""
     try:
         if 'file' not in request.files:
@@ -75,7 +75,7 @@ def upload_file() -> Union[Response, tuple[Response, int]]:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/download', methods=['POST'])
-def download() -> Union[Response, tuple[Response, int]]:
+def download() -> Union[Response, Tuple[Response, int]]:
     """Handle file download with custom column mapping."""
     try:
         temp_file = os.path.join(TEMP_DIR, 'data.csv')

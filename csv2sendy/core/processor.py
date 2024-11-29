@@ -3,7 +3,7 @@ from email_validator import validate_email, EmailNotValidError
 import pandas as pd
 from io import StringIO
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any, Tuple, cast
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -12,11 +12,11 @@ class CSVProcessor:
     def __init__(self) -> None:
         self.encodings: List[str] = ['utf-8-sig', 'latin1', 'iso-8859-1', 'cp1252']
 
-    def process_file(self, file_content: Union[str, StringIO], delimiter: Optional[str] = None) -> pd.DataFrame:
+    def process_file(self, file_content: str, delimiter: Optional[str] = None) -> pd.DataFrame:
         """Process a CSV file content and return normalized DataFrame.
         
         Args:
-            file_content (Union[str, StringIO]): Content of the CSV file
+            file_content (str): Content of the CSV file
             delimiter (str, optional): CSV delimiter. If None, will be auto-detected
             
         Returns:
@@ -24,8 +24,7 @@ class CSVProcessor:
         """
         if delimiter is None:
             delimiter = self.detect_delimiter(file_content)
-        
-        logger.debug(f"Reading CSV with delimiter: {delimiter}")
+
         df = pd.read_csv(StringIO(file_content), delimiter=delimiter)
         logger.debug(f"Initial columns: {df.columns.tolist()}")
         return self.process_dataframe(df)
@@ -42,83 +41,81 @@ class CSVProcessor:
         # Remove rows where all fields are empty
         df = df.dropna(how='all')
         
-        # Normalize column names
-        column_mapping = self._get_column_mapping(df.columns)
-        logger.debug(f"Column mapping: {column_mapping}")
-        processed_df = df.rename(columns=column_mapping)
-        logger.debug(f"After renaming columns: {processed_df.columns.tolist()}")
+        # Get column mapping
+        column_mapping = self._get_column_mapping(df.columns.tolist())
         
-        # Process name fields
-        if 'name' in processed_df.columns:
-            logger.debug("Processing name field")
-            names_processed = processed_df['name'].apply(self.process_name)
-            processed_df['first_name'] = [x[0] for x in names_processed]
-            processed_df['last_name'] = [x[1] for x in names_processed]
-            processed_df.drop('name', axis=1, inplace=True)
+        # Rename columns based on mapping
+        df = df.rename(columns=column_mapping)
         
-        # Process phone numbers
-        if 'phone_number' in processed_df.columns:
-            logger.debug("Processing phone numbers")
-            processed_df['phone_number'] = processed_df['phone_number'].apply(self.format_phone_number)
+        # Process name column
+        if 'name' in df.columns:
+            df[['first_name', 'last_name']] = df.apply(
+                lambda row: pd.Series(self.process_name(str(row['name']))), axis=1)
+            df = df.drop('name', axis=1)
         
-        # Process emails
-        if 'email' in processed_df.columns:
-            logger.debug("Processing emails")
-            processed_df['email'] = processed_df['email'].apply(self.validate_email_address)
-            # Remove rows with invalid emails
-            processed_df = processed_df[processed_df['email'].astype(str).str.len() > 0]
-            logger.debug(f"After email validation, rows: {len(processed_df)}")
+        # Process phone column
+        if 'phone' in df.columns:
+            df['phone'] = df['phone'].apply(lambda x: self.format_phone_number(str(x)))
         
-        # Clean up
-        processed_df = processed_df.fillna('')
+        # Process email column
+        if 'email' in df.columns:
+            df['email'] = df['email'].apply(lambda x: self.validate_email_address(str(x)))
+            df = df[df['email'] != '']  # Remove rows with invalid emails
         
-        # Reorder columns
-        preferred_order = ['first_name', 'email', 'phone_number', 'last_name']
-        available_columns = [col for col in preferred_order if col in processed_df.columns]
-        other_columns = [col for col in processed_df.columns if col not in preferred_order]
-        final_column_order = available_columns + other_columns
+        # Define final column order
+        final_column_order = [
+            'first_name', 'last_name', 'email', 'phone',
+            *[col for col in df.columns if col not in ['first_name', 'last_name', 'email', 'phone']]
+        ]
         
-        logger.debug(f"Final columns: {final_column_order}")
-        logger.debug(f"Final DataFrame:\n{processed_df}")
+        # Select only columns that exist in the DataFrame
+        final_column_order = [col for col in final_column_order if col in df.columns]
+        
+        # Create processed DataFrame with desired column order
+        processed_df = df[final_column_order]
+        
         return processed_df[final_column_order]
     
     @staticmethod
-    def detect_delimiter(content: Union[str, StringIO]) -> str:
+    def detect_delimiter(content: str) -> str:
         """Detect the delimiter used in a CSV content.
         
         Args:
-            content (Union[str, StringIO]): CSV content
+            content (str): CSV content
             
         Returns:
             str: Detected delimiter
         """
         first_line = content.split('\n')[0]
-        semicolons = first_line.count(';')
-        commas = first_line.count(',')
-        delimiter = ';' if semicolons >= commas else ','
-        logger.debug(f"Detected delimiter: {delimiter} (semicolons: {semicolons}, commas: {commas})")
+        delimiter = ',' if first_line.count(',') > first_line.count(';') else ';'
+        logger.debug(f"Detected delimiter: {delimiter}")
         return delimiter
     
     @staticmethod
-    def process_name(name: str) -> tuple:
+    def process_name(name: str) -> Tuple[str, str]:
         """Process a name into first and last name components.
         
         Args:
             name (str): Full name
             
         Returns:
-            tuple: (first_name, last_name)
+            Tuple[str, str]: First name and last name
         """
-        if pd.isna(name) or str(name).lower().strip() == 'sem nome':
+        # Remove extra spaces and normalize case
+        name = ' '.join(name.split())
+        
+        if not name:
             return ('', '')
-            
-        parts = str(name).strip().split()
-        if len(parts) == 0:
-            return ('', '')
-        elif len(parts) == 1:
+        
+        # Split into parts
+        parts = name.split()
+        
+        # If only one part, use it as first name
+        if len(parts) == 1:
             return (parts[0].title(), '')
-        else:
-            return (parts[0].title(), ' '.join(parts[1:]).title())
+        
+        # Otherwise, first part is first name, rest is last name
+        return (parts[0].title(), ' '.join(parts[1:]).title())
     
     @staticmethod
     def format_phone_number(phone: str) -> str:
@@ -128,26 +125,28 @@ class CSVProcessor:
             phone (str): Input phone number
             
         Returns:
-            str: Formatted phone number
+            str: Formatted phone number or empty string if invalid
         """
-        if pd.isna(phone):
-            return ''
-            
-        # Remove non-numeric characters
-        numbers = re.sub(r'\D', '', str(phone))
+        # Remove all non-numeric characters
+        numbers = re.sub(r'\D', '', phone)
         
-        # Handle empty or invalid
-        if len(numbers) < 8:
+        # Check if empty
+        if not numbers:
             return ''
-            
-        # Add country code if missing
-        if len(numbers) < 12 and len(numbers) >= 10:
-            numbers = '55' + numbers
-            
-        # Format to standard
-        if len(numbers) == 13 and numbers.startswith('55'):
-            return f'+{numbers[:2]} ({numbers[2:4]}) {numbers[4:9]}-{numbers[9:]}'
-            
+        
+        # Remove leading zeros
+        numbers = numbers.lstrip('0')
+        
+        # Check length
+        if len(numbers) < 10 or len(numbers) > 11:
+            return ''
+        
+        # Format number
+        if len(numbers) == 11:  # Mobile with DDD
+            return f'({numbers[:2]}) {numbers[2:7]}-{numbers[7:]}'
+        elif len(numbers) == 10:  # Landline with DDD
+            return f'({numbers[:2]}) {numbers[2:6]}-{numbers[6:]}'
+        
         return ''
     
     @staticmethod
@@ -160,38 +159,49 @@ class CSVProcessor:
         Returns:
             str: Normalized email address or empty string if invalid
         """
-        if pd.isna(email):
-            return ''
-        
-        email_str = str(email).strip()
-        if not email_str:
-            return ''
-        
         try:
-            # Normalize email to lowercase before validation
-            email_str = email_str.lower()
-            valid = validate_email(email_str, check_deliverability=False)
-            return valid.normalized
+            # Clean up the email string
+            email = email.strip().lower()
+            
+            if not email:
+                return ''
+            
+            # Validate email
+            validation = validate_email(email, check_deliverability=False)
+            return cast(str, validation.email)
+            
         except EmailNotValidError:
             return ''
     
     @staticmethod
-    def _get_column_mapping(columns: List[str]) -> dict:
+    def _get_column_mapping(columns: List[str]) -> Dict[str, str]:
         """Get mapping of original column names to normalized names.
         
         Args:
             columns (List[str]): List of original column names
             
         Returns:
-            dict: Mapping of original to normalized names
+            Dict[str, str]: Mapping of original to normalized names
         """
         mapping = {}
+        
         for col in columns:
-            col_lower = str(col).lower().strip()
-            if any(name in col_lower for name in ['name', 'nome']):
+            normalized = col.lower().strip()
+            
+            # Name variations
+            if any(name in normalized for name in ['nome', 'name']):
                 mapping[col] = 'name'
-            elif any(email in col_lower for email in ['email', 'e-mail', 'e_mail']):
+            
+            # Email variations
+            elif any(email in normalized for email in ['email', 'e-mail']):
                 mapping[col] = 'email'
-            elif any(phone in col_lower for phone in ['phone', 'telefone', 'whatsapp']):
-                mapping[col] = 'phone_number'
+            
+            # Phone variations
+            elif any(phone in normalized for phone in ['phone', 'telefone', 'celular', 'tel', 'fone']):
+                mapping[col] = 'phone'
+            
+            # Keep original if no mapping found
+            else:
+                mapping[col] = col
+        
         return mapping
