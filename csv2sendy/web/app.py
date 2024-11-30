@@ -98,13 +98,25 @@ def upload_file() -> Tuple[Response, int]:
 def download_file(filename: str) -> Union[Response, Tuple[Response, int]]:
     """Download processed file."""
     try:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'File not found'}), 404
+            
         return send_file(
-            os.path.join(app.config['UPLOAD_FOLDER'], filename),
+            filepath,
             as_attachment=True,
+            download_name=filename,
             mimetype='text/csv'
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.after_request
+def add_header(response: Response) -> Response:
+    """Add headers to prevent caching."""
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 if __name__ == '__main__':

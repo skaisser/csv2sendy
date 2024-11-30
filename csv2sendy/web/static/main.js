@@ -194,51 +194,38 @@ function updateTable() {
 }
 
 // Download processed file
-function downloadProcessedFile() {
-    const columns = columnConfig.filter(config => config.included)
-        .map(config => ({
-            originalName: config.originalName,
-            displayName: config.displayName
-        }));
-
-    const tagName = document.getElementById('tagInput').value;
-    const tagValue = document.getElementById('tagValue').value;
-    const removeDuplicates = document.getElementById('removeDuplicates').checked;
-
-    fetch('/download', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin',  // Include cookies for session handling
-        body: JSON.stringify({
-            columns: columns,
-            tagName: tagName,
-            tagValue: tagValue,
-            removeDuplicates: removeDuplicates
-        })
-    })
-    .then(response => {
+async function downloadProcessedFile() {
+    const downloadUrl = document.getElementById('downloadLink').href;
+    try {
+        const response = await fetch(downloadUrl);
         if (!response.ok) {
-            return response.json().then(data => {
-                throw new Error(data.error || 'Network response was not ok');
-            });
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to download file');
         }
-        return response.blob();
-    })
-    .then(blob => {
+        
+        // Get filename from Content-Disposition header or use a default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filename = contentDisposition
+            ? contentDisposition.split('filename=')[1].replace(/['"]/g, '')
+            : 'processed.csv';
+            
+        // Create blob from response
+        const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
+        
+        // Create temporary link and click it
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'processed_data.csv';
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
+        
+        // Cleanup
         window.URL.revokeObjectURL(url);
-        a.remove();
-    })
-    .catch(error => {
-        alert('Error downloading file: ' + error.message);
-    });
+        document.body.removeChild(a);
+    } catch (error) {
+        showError('Error downloading file: ' + error.message);
+    }
 }
 
 // Filter handlers
