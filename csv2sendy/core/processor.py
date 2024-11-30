@@ -23,10 +23,17 @@ class CSVProcessor:
             'e-mail': 'email'
         }
 
-    def process_name(self, name: Optional[str]) -> Dict[str, str]:
+    def process_name(self, name: Optional[Any]) -> Dict[str, str]:
         """Process a name into first and last name components."""
-        if not name or name.lower() == 'sem nome':
+        if not name or pd.isna(name):
             return {'first_name': '', 'last_name': ''}
+            
+        # Convert to string if not already
+        name = str(name).strip()
+        
+        if name.lower() == 'sem nome':
+            return {'first_name': '', 'last_name': ''}
+            
         name = ' '.join(word.capitalize() for word in name.split())
         parts = name.split()
         if len(parts) == 1:
@@ -86,9 +93,10 @@ class CSVProcessor:
         """Get column mapping for standardization."""
         mapping = {}
         for col in columns:
-            col_lower = col.lower()
-            if col_lower in self.column_mapping:
-                mapping[col] = self.column_mapping[col_lower]
+            # Convert column name to string and lowercase for comparison
+            col_str = str(col).lower() if not pd.isna(col) else ''
+            if col_str in self.column_mapping:
+                mapping[col] = self.column_mapping[col_str]
             else:
                 mapping[col] = col
         return mapping
