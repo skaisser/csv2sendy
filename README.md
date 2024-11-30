@@ -43,17 +43,24 @@ A powerful CSV processor for Sendy.co with Brazilian data format support.
   - Special character handling
   - Empty name filtering
 
-- 🌐 **Web Interface**
-  - File upload and processing
-  - Column mapping
-  - Tag management
-  - CSV download
-
 - 🔒 **Security**
   - Secure file handling
   - Automatic file cleanup
   - Input sanitization
   - File size limits
+
+## 💻 Web Interface
+
+Transform your CSV files into Sendy.co-ready formats with our intuitive web interface:
+
+![CSV2Sendy Web Interface](docs/images/web-interface.png)
+
+The web interface provides:
+- 📤 Drag & drop file upload
+- 🔄 Automatic CSV processing
+- 📋 Column mapping
+- ✨ Data validation and cleaning
+- ⬇️ Download processed files
 
 ## 📦 Installation
 
@@ -80,12 +87,12 @@ pip install -e ".[dev]"
 python -m csv2sendy.web.app
 ```
 
-Visit http://localhost:8080 in your browser.
+Visit http://localhost:5000 in your browser.
 
 ### Command Line Interface (CLI)
 
 ```bash
-# Start the web server on default port (8080)
+# Start the web server on default port (5000)
 csv2sendy
 
 # Start the web server on a specific port
@@ -95,7 +102,7 @@ csv2sendy 3000
 csv2sendy --help
 ```
 
-The CLI provides a convenient way to start the web interface. By default, it starts the server on port 8080, but you can specify a different port as a command-line argument.
+The CLI provides a convenient way to start the web interface. By default, it starts the server on port 5000, but you can specify a different port as a command-line argument.
 
 ### Python API
 
@@ -113,54 +120,25 @@ John Doe,john@example.com,(11) 98765-4321'''
 df = processor.process_file(content)
 ```
 
-## 💻 Development
-
-### Setup
-
-1. Clone the repository:
-```bash
-git clone https://github.com/skaisser/csv2sendy.git
-cd csv2sendy
-```
-
-2. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install development dependencies:
-```bash
-pip install -e ".[dev,test,doc]"
-```
-
-### Testing
-
-Run tests with coverage:
-```bash
-pytest --cov=csv2sendy tests/
-```
-
-Run type checking:
-```bash
-mypy csv2sendy
-```
-
-### Documentation
-
-Build documentation:
-```bash
-cd docs
-make html
-```
-
 ## 🔧 Dependencies
 
-- Python 3.9
-- pandas >= 1.3.0
-- email-validator >= 1.1.0
-- flask >= 2.0.0
-- werkzeug >= 2.0.0
+Core dependencies (automatically installed):
+- Python >=3.9
+- pandas >=1.3.0
+- email-validator >=1.1.0
+- flask >=2.0.0
+- werkzeug >=2.0.0
+
+Development dependencies (install with `.[dev]`):
+- pytest >=7.0.0
+- pytest-cov >=4.0.0
+- mypy >=1.13.0
+- types-flask >=1.1.0
+- types-werkzeug >=1.0.0
+- pandas-stubs >=2.0.0
+
+Documentation dependencies (install with `.[docs]`):
+- sphinx >=7.0.0
 
 ## 🤝 Contributing
 
