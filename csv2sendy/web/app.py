@@ -18,6 +18,7 @@ from flask import Flask, request, send_file, jsonify, render_template, Response
 from werkzeug.utils import secure_filename
 from werkzeug.wrappers import Response as WerkzeugResponse
 from csv2sendy.core.processor import CSVProcessor
+import pandas as pd
 
 
 TEMP_DIR = tempfile.gettempdir()
@@ -71,8 +72,8 @@ def upload_file() -> Tuple[Response, int]:
         processor = CSVProcessor()
         df = processor.process_csv(content)
 
-        # Convert DataFrame to dictionary for JSON response
-        data = df.to_dict('records')
+        # Convert DataFrame to dictionary, replacing NaN with None
+        data = df.where(pd.notna(df), None).to_dict('records')
         headers = df.columns.tolist()
 
         # Save processed file
