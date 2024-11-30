@@ -13,8 +13,10 @@ Key Features:
 
 import os
 import tempfile
+import time
+import json
 from typing import Tuple, Union, cast
-from flask import Flask, request, send_file, jsonify, render_template, Response
+from flask import Flask, request, send_file, jsonify, render_template, Response, url_for
 from werkzeug.utils import secure_filename
 from werkzeug.wrappers import Response as WerkzeugResponse
 from csv2sendy.core.processor import CSVProcessor
@@ -64,6 +66,7 @@ def upload_file() -> Tuple[Response, int]:
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
+        app.logger.info(f'File saved to {filepath}')
 
         # Process the file
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -75,50 +78,107 @@ def upload_file() -> Tuple[Response, int]:
         # Convert DataFrame to dictionary, replacing NaN with None
         data = df.where(pd.notna(df), None).to_dict('records')
         headers = df.columns.tolist()
+        app.logger.info(f'Processed headers: {headers}')
 
-        # Save processed file
-        output_filename = 'processed_' + filename
+        # Save processed file with timestamp to avoid conflicts
+        timestamp = int(time.time())
+        output_filename = f'processed_{timestamp}_{filename}'
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
         df.to_csv(output_path, index=False)
+        app.logger.info(f'Processed file saved to {output_path}')
+
+        download_url = url_for('download_file', filename=output_filename)
+        app.logger.info(f'Download URL: {download_url}')
 
         return jsonify({
             'message': 'File processed successfully',
-            'download_url': f'/download/{output_filename}',
+            'download_url': download_url,
             'data': data,
             'headers': headers
         }), 200
 
     except UnicodeDecodeError:
+        app.logger.error('Invalid file encoding')
         return jsonify({'error': 'Invalid file encoding'}), 500
     except Exception as e:
+        app.logger.error(f'Error processing file: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/download/<filename>')
-def download_file(filename: str) -> Union[Response, Tuple[Response, int]]:
-    """Download processed file."""
+@app.route('/download', methods=['POST'])
+def download_file() -> Union[Response, Tuple[Response, int]]:
+    """Download processed file with column configuration."""
     try:
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        if not os.path.exists(filepath):
-            return jsonify({'error': f'File {filename} not found'}), 404
+        app.logger.info('Processing download request')
+        
+        # Get request data
+        columns = request.form.get('columns')
+        if not columns:
+            return jsonify({'error': 'No column configuration provided'}), 400
             
+        columns = json.loads(columns)
+        tag = request.form.get('tag', '')
+        remove_duplicates = request.form.get('remove_duplicates', 'false').lower() == 'true'
+        remove_empty = request.form.get('remove_empty', 'false').lower() == 'true'
+        
+        # Find the most recent uploaded file
+        files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) 
+                if f.endswith('.csv')]
+        if not files:
+            return jsonify({'error': 'No uploaded file found'}), 404
+            
+        latest_file = max(files, key=lambda x: os.path.getmtime(os.path.join(app.config['UPLOAD_FOLDER'], x)))
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], latest_file)
+        
+        # Create output filename
+        timestamp = int(time.time())
+        output_filename = f'processed_{timestamp}.csv'
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        
+        # Read and process the file
+        df = pd.read_csv(input_path)
+        
+        # Apply filters
+        if remove_duplicates:
+            original_len = len(df)
+            df = df.drop_duplicates(subset=['email'], keep='first')
+            app.logger.info(f'Removed {original_len - len(df)} duplicate emails')
+            
+        if remove_empty:
+            original_len = len(df)
+            df = df.dropna(subset=['email'])
+            app.logger.info(f'Removed {original_len - len(df)} empty emails')
+            
+        # Add tag if provided
+        if tag:
+            df['tag'] = tag
+            
+        # Reorder and filter columns
+        column_order = [col['originalName'] for col in columns]
+        df = df[column_order]
+        
+        # Save to temporary file
+        df.to_csv(output_path, index=False)
+        
+        # Send file
         response = send_file(
-            filepath,
+            output_path,
             mimetype='text/csv',
             as_attachment=True,
-            download_name=filename
+            download_name='processed.csv'
         )
         
         # Add headers to force download
-        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.headers['Content-Disposition'] = 'attachment; filename="processed.csv"'
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         
+        app.logger.info('File processed and ready for download')
         return response
         
     except Exception as e:
-        app.logger.error(f'Error downloading file {filename}: {str(e)}')
+        app.logger.error(f'Error processing download request: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 

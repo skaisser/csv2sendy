@@ -79,6 +79,8 @@ function processFile(file) {
 
 // Initialize column configuration
 function initializeColumnConfig(headers) {
+    console.log('Initializing column config with headers:', headers);
+    
     // Define preferred order and display names for Sendy.co
     const columnMappings = {
         'first_name': 'Name',
@@ -91,25 +93,15 @@ function initializeColumnConfig(headers) {
     const defaultCheckedColumns = ['first_name', 'email', 'phone_number', 'last_name'];
     const mandatoryColumns = ['email'];
     
-    const preferredOrder = ['first_name', 'email', 'phone_number', 'last_name'];
-    
-    // Sort headers based on preferred order
-    const sortedHeaders = [...headers].sort((a, b) => {
-        const aIndex = preferredOrder.indexOf(a);
-        const bIndex = preferredOrder.indexOf(b);
-        
-        if (aIndex === -1 && bIndex === -1) return 0;
-        if (aIndex === -1) return 1;
-        if (bIndex === -1) return -1;
-        return aIndex - bIndex;
-    });
-    
-    columnConfig = sortedHeaders.map(header => ({
+    // Create column config
+    columnConfig = headers.map((header, index) => ({
         originalName: header,
         displayName: columnMappings[header] || header,
-        included: defaultCheckedColumns.includes(header),
-        order: sortedHeaders.indexOf(header)
+        included: defaultCheckedColumns.includes(header) || header === 'email',
+        order: index
     }));
+    
+    console.log('Column config created:', columnConfig);
     
     // Create column management UI
     const columnList = document.getElementById('columnList');
@@ -118,26 +110,44 @@ function initializeColumnConfig(headers) {
     columnConfig.forEach((config, index) => {
         const li = document.createElement('li');
         li.className = 'column-item glass-effect border border-white/20 p-4 rounded-xl flex items-center gap-4 cursor-move transition-all duration-300 hover:shadow-md';
+        li.setAttribute('data-id', index);
         li.innerHTML = `
-            <span class="handle text-neutral/40 hover:text-neutral/60"><i class="bi bi-grip-vertical"></i></span>
+            <span class="handle cursor-move text-neutral/40 hover:text-neutral/60"><i class="bi bi-grip-vertical"></i></span>
             <input type="checkbox" class="rounded-lg border-gray-300 text-primary focus:ring-primary w-5 h-5" 
                    ${config.included ? 'checked' : ''} 
                    ${mandatoryColumns.includes(config.originalName) ? 'disabled' : ''}
                    onchange="updateColumnConfig(${index}, 'included', this.checked)">
             <input type="text" class="flex-1 rounded-xl border-gray-200 focus:border-primary focus:ring-primary glass-effect" 
                    value="${config.displayName}" 
-                   ${mandatoryColumns.includes(config.originalName) ? 'readonly' : ''}
                    onchange="updateColumnConfig(${index}, 'displayName', this.value)">
         `;
         columnList.appendChild(li);
     });
 
     // Initialize Sortable
-    new Sortable(columnList, {
-        handle: '.handle',
+    if (window.columnSortable) {
+        window.columnSortable.destroy();
+    }
+    
+    window.columnSortable = new Sortable(columnList, {
         animation: 150,
-        onEnd: updateColumnOrder
+        handle: '.handle',
+        ghostClass: 'opacity-50',
+        onEnd: function(evt) {
+            const items = Array.from(columnList.children);
+            columnConfig = items.map((item, index) => {
+                const originalIndex = parseInt(item.getAttribute('data-id'));
+                const config = columnConfig[originalIndex];
+                config.order = index;
+                return config;
+            });
+            console.log('Updated column config:', columnConfig);
+            updateTable();
+        }
     });
+    
+    // Initial table update
+    updateTable();
 }
 
 // Update column configuration
@@ -146,18 +156,9 @@ function updateColumnConfig(index, property, value) {
     updateTable();
 }
 
-// Update column order after drag and drop
-function updateColumnOrder(event) {
-    const newOrder = Array.from(event.to.children).map(li => {
-        const displayName = li.querySelector('input[type="text"]').value;
-        return columnConfig.find(config => config.displayName === displayName);
-    });
-    columnConfig = newOrder;
-    updateTable();
-}
-
 // Update table display
 function updateTable() {
+    console.log('Updating table with config:', columnConfig);
     const headers = document.getElementById('tableHeaders');
     const body = document.getElementById('tableBody');
     
@@ -165,8 +166,12 @@ function updateTable() {
     headers.innerHTML = '';
     body.innerHTML = '';
     
+    // Sort columns by order
+    const sortedColumns = [...columnConfig].sort((a, b) => a.order - b.order);
+    console.log('Sorted columns:', sortedColumns);
+    
     // Add headers
-    columnConfig.forEach(config => {
+    sortedColumns.forEach(config => {
         if (config.included) {
             const th = document.createElement('th');
             th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
@@ -176,65 +181,93 @@ function updateTable() {
     });
     
     // Add rows
-    tableData.slice(0, 10).forEach(row => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-gray-50';
-        
-        columnConfig.forEach(config => {
-            if (config.included) {
-                const td = document.createElement('td');
-                td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-900';
-                td.textContent = row[config.originalName] || '';
-                tr.appendChild(td);
-            }
+    if (tableData && tableData.length > 0) {
+        tableData.slice(0, 10).forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50';
+            
+            sortedColumns.forEach(config => {
+                if (config.included) {
+                    const td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-900';
+                    td.textContent = row[config.originalName] || '';
+                    tr.appendChild(td);
+                }
+            });
+            
+            body.appendChild(tr);
         });
-        
-        body.appendChild(tr);
-    });
+    }
 }
 
 // Initialize download button
 document.getElementById('downloadButton').addEventListener('click', async () => {
-    const downloadUrl = document.getElementById('downloadLink').getAttribute('href');
-    if (!downloadUrl) {
-        showError('No file available for download');
-        return;
-    }
-
+    console.log('Download button clicked');
+    
     try {
-        const response = await fetch(downloadUrl);
+        // Show loading state
+        const button = document.getElementById('downloadButton');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split animate-spin mr-2"></i> Processing...';
+        button.disabled = true;
+
+        // Get form data
+        const tagValue = document.getElementById('tagValue').value;
+        const removeDuplicates = document.getElementById('removeDuplicates').checked;
+        const removeEmpty = document.getElementById('removeEmpty').checked;
+
+        // Get the sorted and filtered column configuration
+        const sortedColumns = [...columnConfig].sort((a, b) => a.order - b.order)
+            .filter(config => config.included)
+            .map(config => ({
+                originalName: config.originalName,
+                displayName: config.displayName
+            }));
+
+        console.log('Sending download request with columns:', sortedColumns);
+
+        const formData = new FormData();
+        formData.append('columns', JSON.stringify(sortedColumns));
+        formData.append('tag', tagValue);
+        formData.append('remove_duplicates', removeDuplicates);
+        formData.append('remove_empty', removeEmpty);
+
+        const response = await fetch('/download', {
+            method: 'POST',
+            body: formData
+        });
+
         if (!response.ok) {
-            const data = await response.json().catch(() => ({ error: 'Download failed' }));
-            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Download failed');
         }
-        
+
+        // Create a blob from the response and trigger download
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        
-        // Get filename from Content-Disposition header or use default
-        const contentDisposition = response.headers.get('content-disposition');
-        let filename = 'processed.csv';
-        if (contentDisposition) {
-            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-            if (filenameMatch && filenameMatch[1]) {
-                filename = filenameMatch[1].replace(/['"]/g, '');
-            }
-        }
-        
+        a.style.display = 'none';
         a.href = url;
-        a.download = filename;
+        a.download = 'processed.csv';
         document.body.appendChild(a);
         a.click();
         
         // Cleanup
-        setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        }, 0);
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Reset button
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
     } catch (error) {
         console.error('Download error:', error);
-        showError('Error downloading file: ' + error.message);
+        alert('Error downloading file: ' + error.message);
+        
+        // Reset button on error
+        const button = document.getElementById('downloadButton');
+        button.innerHTML = '<i class="bi bi-download mr-2"></i> Download Processed File';
+        button.disabled = false;
     }
 });
 
