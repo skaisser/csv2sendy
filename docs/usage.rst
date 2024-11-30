@@ -10,10 +10,17 @@ CSV2Sendy provides a web interface for processing CSV files. To start the web se
 
    python -m csv2sendy.web.app
 
-Then open your browser and navigate to http://localhost:8080
+Then open your browser and navigate to http://localhost:5000
 
 The web interface provides:
-- File upload with UTF-8 encoding support
+
+.. image:: images/web-interface.png
+   :alt: CSV2Sendy Web Interface
+   :align: center
+
+Features:
+- Drag & drop file upload with UTF-8 encoding support
+- Automatic CSV processing and validation
 - Interactive column mapping
 - Tag management
 - Preview and download capabilities
@@ -87,36 +94,35 @@ Web Interface Usage
 1. Upload a CSV File
 ~~~~~~~~~~~~~~~~~~~
 
-Navigate to http://localhost:8080 and click "Choose File" to upload your CSV file.
-The interface supports files with various encodings, including UTF-8.
+Navigate to http://localhost:5000 and either:
 
-2. Map Columns
-~~~~~~~~~~~~~
+- Drag and drop your CSV file into the upload area
+- Click "Choose File" to select your file
 
-After upload, you'll see a list of columns from your CSV file. For each column:
+The interface supports various file encodings:
+- UTF-8 (recommended)
+- Latin1 (ISO-8859-1)
+- Windows-1252 (CP1252)
 
-1. Select the corresponding Sendy field
-2. Preview the data to ensure correct mapping
-3. Click "Continue" when done
+2. Process and Map Columns
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-3. Add Tags (Optional)
-~~~~~~~~~~~~~~~~~~~~~
+After upload:
 
-You can add tags to your contacts:
+1. The file will be automatically processed and validated
+2. You'll see a list of detected columns from your CSV file
+3. For each column:
+   - Select the corresponding Sendy field
+   - Preview the data to ensure correct mapping
+4. Add any tags you want to apply to all contacts
+5. Click "Process" to generate your Sendy-ready CSV
 
-1. Enter the tag name (e.g., "Source")
-2. Enter the tag value (e.g., "Website")
-3. All contacts will receive this tag in Sendy
+3. Download Results
+~~~~~~~~~~~~~~~~~~
 
-4. Download
-~~~~~~~~~~
-
-Click "Download" to get your processed CSV file. The file will be:
-
-- UTF-8 encoded
-- Properly formatted for Sendy
-- Include any tags you added
-- Have duplicates removed (if specified)
+- Preview the processed data to ensure accuracy
+- Click "Download" to get your Sendy-ready CSV file
+- The downloaded file will be properly encoded in UTF-8
 
 Error Handling
 -------------

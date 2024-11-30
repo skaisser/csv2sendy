@@ -57,11 +57,26 @@ You can install CSV2Sendy using pip:
 Requirements
 -----------
 
-- Python 3.9 or higher
-- pandas >= 1.3.0
-- email-validator >= 1.1.0
-- flask >= 2.0.0
-- werkzeug >= 2.0.0
+Core dependencies:
+
+- Python >=3.9
+- pandas >=1.3.0
+- email-validator >=1.1.0
+- flask >=2.0.0
+- werkzeug >=2.0.0
+
+Development dependencies (install with ``.[dev]``):
+
+- pytest >=7.0.0
+- pytest-cov >=4.0.0
+- mypy >=1.13.0
+- types-flask >=1.1.0
+- types-werkzeug >=1.0.0
+- pandas-stubs >=2.0.0
+
+Documentation dependencies (install with ``.[docs]``):
+
+- sphinx >=7.0.0
 
 Quick Start
 ----------
@@ -84,14 +99,28 @@ Here's a simple example of how to use CSV2Sendy:
 Web Interface
 ------------
 
-CSV2Sendy also provides a web interface for easy file processing:
+CSV2Sendy provides an intuitive web interface for easy file processing:
+
+.. image:: images/web-interface.png
+   :alt: CSV2Sendy Web Interface
+   :align: center
+
+To start the web interface:
 
 .. code-block:: bash
 
    # Start the web server
    python -m csv2sendy.web.app
 
-Then open your browser and navigate to http://localhost:8080 to use the web interface.
+Then open your browser and navigate to http://localhost:5000
+
+The web interface provides:
+
+- Drag & drop file upload
+- Automatic CSV processing
+- Interactive column mapping
+- Data validation and cleaning
+- Preview and download capabilities
 
 Contributing
 -----------
