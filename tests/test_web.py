@@ -4,6 +4,7 @@ import os
 import pytest
 import tempfile
 import shutil
+import json
 from io import BytesIO
 from csv2sendy.web.app import app, TEMP_DIR, cleanup_temp_files
 
@@ -85,33 +86,49 @@ def test_upload_invalid_encoding(client):
 
 def test_download_missing_file(client):
     """Test download endpoint with missing file."""
-    response = client.get('/download/nonexistent.csv')
-    assert response.status_code == 500
+    data = {
+        'columns': '{"name": "first_name", "email": "email"}',
+        'tag': 'test',
+        'remove_duplicates': 'true',
+        'remove_empty': 'true'
+    }
+    response = client.post('/download', data=data)
+    assert response.status_code == 404
+    assert b'No uploaded file found' in response.data
 
 
 def test_download_valid_file(client):
     """Test download endpoint with valid file."""
+    # Create a test CSV file
+    content = 'name,email\nJohn Doe,john@example.com'
     filename = 'test.csv'
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    content = 'test content'
-    
+
     try:
         # Write content and ensure file is properly closed
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
-        
+
         # Verify file exists and is readable
         assert os.path.exists(filepath), f"File {filepath} was not created"
         assert os.access(filepath, os.R_OK), f"File {filepath} is not readable"
-        
-        with open(filepath, 'r', encoding='utf-8') as f:
-            assert f.read() == content, "File content verification failed"
-        
-        response = client.get(f'/download/{filename}')
+
+        # Test download with valid configuration
+        data = {
+            'columns': json.dumps([
+                {'originalName': 'name', 'mappedName': 'first_name'},
+                {'originalName': 'email', 'mappedName': 'email'}
+            ]),
+            'tag': 'test',
+            'remove_duplicates': 'true',
+            'remove_empty': 'true'
+        }
+        response = client.post('/download', data=data)
         assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
-        assert response.data.decode() == content, "Downloaded content does not match original"
-        
+        assert 'text/csv' in response.headers['Content-Type']
+        assert b'name,email' in response.data
+
     finally:
-        # Clean up the test file
+        # Clean up test file
         if os.path.exists(filepath):
             os.remove(filepath)
