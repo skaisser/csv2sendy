@@ -75,8 +75,9 @@ def upload_file() -> Tuple[Response, int]:
         processor = CSVProcessor()
         df = processor.process_csv(content)
 
-        # Convert DataFrame to dictionary, replacing NaN with None
-        data = df.where(pd.notna(df), None).to_dict('records')
+        # Convert DataFrame to dictionary, replacing NaN with empty string
+        df = df.fillna('')
+        data = df.to_dict('records')
         headers = df.columns.tolist()
         app.logger.info(f'Processed headers: {headers}')
 
