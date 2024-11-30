@@ -100,15 +100,25 @@ def download_file(filename: str) -> Union[Response, Tuple[Response, int]]:
     try:
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         if not os.path.exists(filepath):
-            return jsonify({'error': 'File not found'}), 404
+            return jsonify({'error': f'File {filename} not found'}), 404
             
-        return send_file(
+        response = send_file(
             filepath,
+            mimetype='text/csv',
             as_attachment=True,
-            download_name=filename,
-            mimetype='text/csv'
+            download_name=filename
         )
+        
+        # Add headers to force download
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+        
     except Exception as e:
+        app.logger.error(f'Error downloading file {filename}: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 

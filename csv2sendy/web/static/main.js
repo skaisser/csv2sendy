@@ -193,6 +193,51 @@ function updateTable() {
     });
 }
 
+// Initialize download button
+document.getElementById('downloadButton').addEventListener('click', async () => {
+    const downloadUrl = document.getElementById('downloadLink').getAttribute('href');
+    if (!downloadUrl) {
+        showError('No file available for download');
+        return;
+    }
+
+    try {
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({ error: 'Download failed' }));
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        // Get filename from Content-Disposition header or use default
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = 'processed.csv';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+        }
+        
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }, 0);
+    } catch (error) {
+        console.error('Download error:', error);
+        showError('Error downloading file: ' + error.message);
+    }
+});
+
 // Download processed file
 async function downloadProcessedFile() {
     const downloadUrl = document.getElementById('downloadLink').href;
