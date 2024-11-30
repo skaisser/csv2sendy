@@ -14,7 +14,7 @@ Key Features:
 import os
 import tempfile
 from typing import Tuple, Union, cast
-from flask import Flask, request, send_file, jsonify, Response
+from flask import Flask, request, send_file, jsonify, render_template, Response
 from werkzeug.utils import secure_filename
 from werkzeug.wrappers import Response as WerkzeugResponse
 from csv2sendy.core.processor import CSVProcessor
@@ -43,34 +43,21 @@ def allowed_file(filename: str) -> bool:
 @app.route('/')
 def home() -> str:
     """Render home page."""
-    return '''
-    <html>
-        <head>
-            <title>CSV2Sendy - Brazilian CSV Processor</title>
-        </head>
-        <body>
-            <h1>CSV2Sendy</h1>
-            <form method="post" action="/upload" enctype="multipart/form-data">
-                <input type="file" name="file">
-                <input type="submit" value="Upload">
-            </form>
-        </body>
-    </html>
-    '''
+    return render_template('index.html')
 
 
 @app.route('/upload', methods=['POST'])
 def upload_file() -> Tuple[Response, int]:
     """Handle file upload."""
     if 'file' not in request.files:
-        return cast(Tuple[Response, int], (jsonify({'error': 'No file part'}), 400))
+        return jsonify({'error': 'No file part'}), 400
 
     file = request.files['file']
     if file.filename == '':
-        return cast(Tuple[Response, int], (jsonify({'error': 'No selected file'}), 400))
+        return jsonify({'error': 'No selected file'}), 400
 
     if not file.filename.endswith('.csv'):
-        return cast(Tuple[Response, int], (jsonify({'error': 'Invalid file type'}), 400))
+        return jsonify({'error': 'Invalid file type'}), 400
 
     try:
         filename = secure_filename(file.filename)
@@ -84,20 +71,26 @@ def upload_file() -> Tuple[Response, int]:
         processor = CSVProcessor()
         df = processor.process_csv(content)
 
+        # Convert DataFrame to dictionary for JSON response
+        data = df.to_dict('records')
+        headers = df.columns.tolist()
+
         # Save processed file
         output_filename = 'processed_' + filename
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
         df.to_csv(output_path, index=False)
 
-        return cast(Tuple[Response, int], (jsonify({
+        return jsonify({
             'message': 'File processed successfully',
-            'download_url': f'/download/{output_filename}'
-        }), 200))
+            'download_url': f'/download/{output_filename}',
+            'data': data,
+            'headers': headers
+        }), 200
 
     except UnicodeDecodeError:
-        return cast(Tuple[Response, int], (jsonify({'error': 'Invalid file encoding'}), 500))
+        return jsonify({'error': 'Invalid file encoding'}), 500
     except Exception as e:
-        return cast(Tuple[Response, int], (jsonify({'error': str(e)}), 500))
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/download/<filename>')
